@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { HttpModule } from '@nestjs/axios';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -39,6 +40,7 @@ const logger = new Logger('AppModule');
         },
       ],
     }),
+    HttpModule,
   ],
   controllers: [AppController],
   providers: [AppService],

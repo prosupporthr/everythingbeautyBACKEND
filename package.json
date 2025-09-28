@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -29,6 +30,7 @@
     "@nestjs/schedule": "^6.0.1",
     "@nestjs/swagger": "^11.2.0",
     "@nestjs/throttler": "^6.4.0",
+    "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.2",
     "class-transformer": "^0.5.1",
