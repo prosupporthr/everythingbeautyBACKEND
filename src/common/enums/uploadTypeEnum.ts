@@ -1,0 +1,4 @@
+export enum UPLOAD_TYPE {
+  PROFILE_PIC = 'PROFILE_PIC',
+  ITEM_IMAGE = 'ITEM_IMAGE',
+}

@@ -2,35 +2,46 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import morgan from 'morgan';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import morgan from 'morgan';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
+  const logger = new Logger('MAIN');
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
-  app.use(morgan('common'));
-  app.enableCors({
-    origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+  app.enableCors();
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
+  app.use(morgan('combined'));
 
-  const configService = app.get<ConfigService>(ConfigService);
-  const PORT = configService.get<number>('PORT', 8001);
+  const configService: ConfigService = app.get(ConfigService);
+  const port: number = configService.get('PORT') ?? 8080;
 
   const config = new DocumentBuilder()
-    .setTitle('Everything Beautiful API')
-    .setDescription('The Everything Beautiful API description')
+    .setTitle('Everything Beautiful Docs')
+    .setDescription('Everything Beautiful API documentation')
     .setVersion('1.0')
-    .addTag('everything-beautiful')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('documentation', app, documentFactory);
+
   await app
-    .listen(PORT as number)
-    .then(() => logger.debug(`Server is running on port ${PORT}`));
+    .listen(port)
+    .then(() => logger.debug(`Server running on port ${port}`));
 }
 bootstrap();
