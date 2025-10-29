@@ -18,14 +18,14 @@ export enum PAYMENT_PLAN {
 })
 export class User extends MetaSchema {
   @Prop({
-    required: true,
+    required: false,
     trim: true,
     transform: (v: string) => v.toLowerCase(),
   })
   firstName: string;
 
   @Prop({
-    required: true,
+    required: false,
     trim: true,
     transform: (v: string) => v.toLowerCase(),
   })
