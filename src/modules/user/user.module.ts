@@ -21,6 +21,13 @@ import { UploadService } from '../upload/upload.service';
     ]),
   ],
   controllers: [UserController],
-  providers: [UserService, OtpService, EmailService, JwtService, UploadService],
+  providers: [
+    UserService,
+    OtpService,
+    EmailService,
+    JwtService,
+    UploadService,
+    ConfigService,
+  ],
 })
 export class UserModule {}

@@ -12,10 +12,12 @@ import { SignupEmailDto } from './dto/signup-email.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { EditUserDto } from './dto/edit-user.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { OTP_TYPE } from '@schemas/Otp.schema';
 import { JwtService } from '@nestjs/jwt';
 import { UploadService } from '../upload/upload.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
@@ -25,6 +27,7 @@ export class UserService {
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
     private uploadService: UploadService,
+    private configService: ConfigService,
   ) {}
 
   async signUpWithEmail({ email }: SignupEmailDto): Promise<ReturnType> {
@@ -60,6 +63,7 @@ export class UserService {
   async verifyOtp({ code }: VerifyOtpDto): Promise<ReturnType> {
     try {
       const result = await this.otpService.verifyOtp({ code });
+      this.logger.error(result);
       const userId = result?.data?.user;
       if (!userId) {
         throw new BadRequestException('Invalid OTP or user not found');
@@ -72,10 +76,16 @@ export class UserService {
       );
       if (!user) throw new NotFoundException('User not found');
 
-      const token = await this.jwtService.signAsync({
-        id: String(user._id),
-        email: user.email,
-      });
+      const token = await this.jwtService.signAsync(
+        {
+          id: String(user._id),
+          email: user.email,
+        },
+        {
+          expiresIn: '7d',
+          secret: this.configService.get('JWT_SECRET'),
+        },
+      );
 
       return new ReturnType({
         success: true,
@@ -83,7 +93,8 @@ export class UserService {
         data: { user, token },
       });
     } catch (error) {
-      throw new BadRequestException(error);
+      this.logger.error(error);
+      throw new BadRequestException('An error occured while validating OTP');
     }
   }
 
@@ -118,6 +129,27 @@ export class UserService {
       return new ReturnType({
         success: true,
         message: 'Login initiated. OTP sent to email.',
+        data: null,
+      });
+    } catch (error) {
+      throw new BadRequestException(error);
+    }
+  }
+
+  async resendOtp({ email }: ResendOtpDto): Promise<ReturnType> {
+    try {
+      const normalizedEmail = email.toLowerCase();
+      const user = await this.userModel.findOne({ email: normalizedEmail });
+      if (!user) throw new NotFoundException('User not found');
+
+      await this.otpService.createOtp({
+        userId: String(user._id),
+        type: OTP_TYPE.USER,
+      });
+
+      return new ReturnType({
+        success: true,
+        message: 'OTP resent to email.',
         data: null,
       });
     } catch (error) {

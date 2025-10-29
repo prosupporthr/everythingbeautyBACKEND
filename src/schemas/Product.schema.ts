@@ -1,11 +1,25 @@
-import { Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Service } from './Service.Schema';
 
 @Schema({
   timestamps: true,
 })
-export class Product extends Service {}
+export class Product extends Service {
+  @Prop({
+    required: false,
+    type: Number,
+    min: 0,
+  })
+  hourlyRate: number = 0;
+
+  @Prop({
+    required: true,
+    type: Number,
+    min: 0,
+  })
+  price: number;
+}
 
 export type ProductDocument = HydratedDocument<Product>;
 export const ProductSchema = SchemaFactory.createForClass(Product);

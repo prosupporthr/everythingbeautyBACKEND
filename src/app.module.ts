@@ -8,6 +8,9 @@ import { HttpModule } from '@nestjs/axios';
 import { UserModule } from './modules/user/user.module';
 import { BusinessModule } from './modules/business/business.module';
 import { JwtModule } from '@nestjs/jwt';
+import { ServiceModule } from './modules/service/service.module';
+import { ProductModule } from './modules/product/product.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -63,6 +66,9 @@ const logger = new Logger('AppModule');
     HttpModule,
     UserModule,
     BusinessModule,
+    ServiceModule,
+    ProductModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -20,6 +20,7 @@ import { SignupEmailDto } from './dto/signup-email.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { EditUserDto } from './dto/edit-user.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
@@ -72,5 +73,13 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'OTP sent to email for login' })
   async loginWithEmail(@Body() dto: LoginEmailDto): Promise<ReturnType> {
     return this.userService.loginWithEmail(dto);
+  }
+
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Resend OTP to email' })
+  @ApiBody({ type: ResendOtpDto })
+  @ApiResponse({ status: 200, description: 'OTP resent to email' })
+  async resendOtp(@Body() dto: ResendOtpDto): Promise<ReturnType> {
+    return this.userService.resendOtp(dto);
   }
 }

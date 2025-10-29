@@ -15,13 +15,6 @@ export class Otp extends MetaSchema {
     type: String,
     required: false,
     trim: true,
-    set: function (this: Otp) {
-      if (this.type === OTP_TYPE.USER && !this.userId) {
-        throw new Error('User ID is required');
-      } else {
-        return this.userId;
-      }
-    },
   })
   userId: string;
 

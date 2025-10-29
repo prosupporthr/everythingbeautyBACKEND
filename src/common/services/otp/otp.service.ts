@@ -56,15 +56,16 @@ export class OtpService {
         // save the OTP
         const data = await this.otpModel.create({
           code: otp,
-          userId,
+          userId: user._id.toString(),
           type,
         });
         await data.save();
+        console.log(data);
         // send out emailService
         await this.emailService.sendConfirmationMail({
           code: otp,
           email: user?.email,
-          name: user.firstName,
+          name: user.email,
         });
       } else if (type === OTP_TYPE.ADMIN) {
         if (!adminId) throw new NotFoundException('Admin not found!');
