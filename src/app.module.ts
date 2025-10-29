@@ -11,6 +11,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ServiceModule } from './modules/service/service.module';
 import { ProductModule } from './modules/product/product.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { BookingModule } from './modules/booking/booking.module';
+import { OrderModule } from './modules/order/order.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -69,6 +71,8 @@ const logger = new Logger('AppModule');
     ServiceModule,
     ProductModule,
     UploadModule,
+    BookingModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

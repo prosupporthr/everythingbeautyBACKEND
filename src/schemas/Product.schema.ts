@@ -19,6 +19,12 @@ export class Product extends Service {
     min: 0,
   })
   price: number;
+
+  @Prop({
+    required: false,
+    type: [String],
+  })
+  colors: string[];
 }
 
 export type ProductDocument = HydratedDocument<Product>;
