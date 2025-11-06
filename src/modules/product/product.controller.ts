@@ -6,6 +6,7 @@ import { EditProductDto } from './dto/edit-product.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
+import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
@@ -60,5 +61,14 @@ export class ProductController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.productService.getBusinessProducts(businessId, query);
+  }
+
+  @Get('filter')
+  @ApiOperation({ summary: 'Get filtered products (paginated)' })
+  @ApiOkResponse({ description: 'Filtered products fetched' })
+  async getFilteredProducts(
+    @Query() query: ProductFilterQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.productService.getFilteredProducts(query);
   }
 }

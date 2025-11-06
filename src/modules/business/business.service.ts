@@ -7,6 +7,7 @@ import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { EditBusinessDto } from './dto/edit-business.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 
 @Injectable()
 export class BusinessService {
@@ -16,6 +17,13 @@ export class BusinessService {
   ) {}
 
   async createBusiness(dto: CreateBusinessDto): Promise<ReturnType> {
+    const business = await this.businessModel.findOne({
+      isDeleted: false,
+      userId: dto.userId,
+    });
+    if (business) {
+      throw new NotFoundException('You already have a business');
+    }
     const created = await this.businessModel.create({ ...dto });
     return new ReturnType({
       success: true,
@@ -126,6 +134,56 @@ export class BusinessService {
     return new PaginatedReturnType<BusinessDocument[]>({
       success: true,
       message: 'Businesses fetched',
+      data,
+      page,
+      total,
+    });
+  }
+
+  async getFilteredBusinesses({
+    page = 1,
+    limit = 10,
+    q,
+    chargeTiming,
+    approved,
+    enabled = true,
+    minRating,
+    maxRating,
+    day,
+    userId,
+  }: BusinessFilterQueryDto): Promise<PaginatedReturnType<BusinessDocument[]>> {
+    const skip = (page - 1) * limit;
+    const filter: Record<string, any> = { isDeleted: false };
+
+    // Default enabled true unless explicitly provided
+    if (enabled !== undefined) filter.enabled = enabled;
+    if (approved !== undefined) filter.approved = approved;
+    if (chargeTiming) filter.chargeTiming = chargeTiming;
+    if (userId) filter.userId = userId;
+    if (typeof day === 'number') filter.days = { $in: [day] };
+    if (minRating !== undefined || maxRating !== undefined) {
+      filter.rating = {};
+      if (minRating !== undefined) filter.rating.$gte = minRating;
+      if (maxRating !== undefined) filter.rating.$lte = maxRating;
+    }
+
+    // Text search across name and location
+    const textFilter = q ? { $text: { $search: q } } : {};
+    const finalFilter = { ...filter, ...textFilter };
+
+    const [data, total] = await Promise.all([
+      this.businessModel
+        .find(finalFilter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.businessModel.countDocuments(finalFilter),
+    ]);
+
+    return new PaginatedReturnType<BusinessDocument[]>({
+      success: true,
+      message: 'Filtered businesses fetched',
       data,
       page,
       total,

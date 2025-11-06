@@ -21,6 +21,7 @@ import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { EditBusinessDto } from './dto/edit-business.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
@@ -100,5 +101,14 @@ export class BusinessController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.businessService.getAllBusinesses(query);
+  }
+
+  @Get('filter')
+  @ApiOperation({ summary: 'Get filtered businesses (paginated)' })
+  @ApiOkResponse({ description: 'Filtered businesses fetched' })
+  async getFilteredBusinesses(
+    @Query() query: BusinessFilterQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.businessService.getFilteredBusinesses(query);
   }
 }

@@ -7,6 +7,7 @@ import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { EditProductDto } from './dto/edit-product.dto';
+import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 
 @Injectable()
 export class ProductService {
@@ -68,6 +69,61 @@ export class ProductService {
     return new PaginatedReturnType<ProductDocument[]>({
       success: true,
       message: 'Business products fetched',
+      data,
+      page,
+      total,
+    });
+  }
+
+  async getFilteredProducts({
+    page = 1,
+    limit = 10,
+    q,
+    businessId,
+    enabled = true,
+    allowReview,
+    minPrice,
+    maxPrice,
+    minHourlyRate,
+    maxHourlyRate,
+    color,
+  }: ProductFilterQueryDto): Promise<PaginatedReturnType<ProductDocument[]>> {
+    const skip = (page - 1) * limit;
+    const filter: Record<string, any> = { isDeleted: false };
+
+    if (businessId) filter.businessId = businessId;
+    if (enabled !== undefined) filter.enabled = enabled;
+    if (allowReview !== undefined) filter.allowReview = allowReview;
+    if (color) filter.colors = { $in: [color] };
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      filter.price = {};
+      if (minPrice !== undefined) filter.price.$gte = minPrice;
+      if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+    }
+
+    if (minHourlyRate !== undefined || maxHourlyRate !== undefined) {
+      filter.hourlyRate = {};
+      if (minHourlyRate !== undefined) filter.hourlyRate.$gte = minHourlyRate;
+      if (maxHourlyRate !== undefined) filter.hourlyRate.$lte = maxHourlyRate;
+    }
+
+    const textFilter = q ? { $text: { $search: q } } : {};
+    const finalFilter = { ...filter, ...textFilter };
+
+    const [data, total] = await Promise.all([
+      this.productModel
+        .find(finalFilter)
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.productModel.countDocuments(finalFilter),
+    ]);
+
+    return new PaginatedReturnType<ProductDocument[]>({
+      success: true,
+      message: 'Filtered products fetched',
       data,
       page,
       total,
