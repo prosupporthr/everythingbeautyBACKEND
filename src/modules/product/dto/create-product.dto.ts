@@ -33,11 +33,17 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ description: 'Hourly rate or price', example: 20 })
+  @ApiProperty({ description: 'price', example: 20 })
   @Type(() => Number)
   @IsNumber()
   @Min(0)
   price: number;
+
+  @ApiProperty({ description: 'quantity', example: 20 })
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  quantity: number;
 
   @ApiProperty({ description: 'Allow reviews', example: true, required: false })
   @IsOptional()

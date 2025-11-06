@@ -21,6 +21,13 @@ export class Product extends Service {
   price: number;
 
   @Prop({
+    required: true,
+    type: Number,
+    min: 1,
+  })
+  quantity: number;
+
+  @Prop({
     required: false,
     type: [String],
   })

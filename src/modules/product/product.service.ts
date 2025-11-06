@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Product, ProductDocument } from '@schemas/Product.schema';
@@ -8,20 +8,28 @@ import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { EditProductDto } from './dto/edit-product.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
+import { Business } from '@/schemas/Business.schema';
+import { BusinessDocument } from '@/schemas/Business.schema';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class ProductService {
+  private logger = new Logger(ProductService.name);
   constructor(
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Business.name)
+    private readonly businessModel: Model<BusinessDocument>,
+    private uploadService: UploadService,
   ) {}
 
   async createProduct(dto: CreateProductDto): Promise<ReturnType> {
     const created = await this.productModel.create({ ...dto });
+    const enrichedProduct = await this.enrichProduct(created);
     return new ReturnType({
       success: true,
       message: 'Product created',
-      data: created,
+      data: enrichedProduct,
     });
   }
 
@@ -31,10 +39,11 @@ export class ProductService {
       isDeleted: false,
     });
     if (!product) throw new NotFoundException('Product not found');
+    const enrichedProduct = await this.enrichProduct(product);
     return new ReturnType({
       success: true,
       message: 'Product fetched',
-      data: product,
+      data: enrichedProduct,
     });
   }
 
@@ -45,10 +54,11 @@ export class ProductService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Product not found');
+    const enrichedProduct = await this.enrichProduct(updated);
     return new ReturnType({
       success: true,
       message: 'Product updated',
-      data: updated,
+      data: enrichedProduct,
     });
   }
 
@@ -89,10 +99,14 @@ export class ProductService {
       }),
     ]);
 
+    const enrichedProducts = await Promise.all(
+      data.map(async (product) => this.enrichProduct(product)),
+    );
+
     return new PaginatedReturnType<ProductDocument[]>({
       success: true,
       message: 'Business products fetched',
-      data,
+      data: enrichedProducts,
       page,
       total,
     });
@@ -144,12 +158,35 @@ export class ProductService {
       this.productModel.countDocuments(finalFilter),
     ]);
 
+    const enrichedProducts = await Promise.all(
+      data.map(async (product) => this.enrichProduct(product)),
+    );
+
     return new PaginatedReturnType<ProductDocument[]>({
       success: true,
       message: 'Filtered products fetched',
-      data,
+      data: enrichedProducts,
       page,
       total,
     });
+  }
+
+  private async enrichProduct(product: ProductDocument) {
+    try {
+      const business = await this.businessModel.findById(product.businessId);
+      const productImages = await this.uploadService.getSignedUrl(
+        product.pictures,
+      );
+      return {
+        ...product.toObject(),
+        business,
+        pictures: productImages,
+      };
+    } catch (error) {
+      this.logger.error('Error enriching product business name', error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+    }
   }
 }

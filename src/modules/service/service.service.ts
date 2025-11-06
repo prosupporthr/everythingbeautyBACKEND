@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -10,12 +15,20 @@ import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { EditServiceDto } from './dto/edit-service.dto';
+import { Booking, BookingDocument } from '@/schemas/Booking.schema';
+import { User } from '@/schemas/User.schema';
+import { Business } from '@/schemas/Business.schema';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class ServiceService {
+  private logger = new Logger(ServiceService.name);
   constructor(
     @InjectModel(ServiceEntity.name)
     private readonly serviceModel: Model<ServiceDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Business.name) private readonly businessModel: Model<Business>,
+    private uploadService: UploadService,
   ) {}
 
   async createService(dto: CreateServiceDto): Promise<ReturnType> {
@@ -94,9 +107,28 @@ export class ServiceService {
     return new PaginatedReturnType<ServiceDocument[]>({
       success: true,
       message: 'Business services fetched',
-      data,
+      data: data,
       page,
       total,
     });
+  }
+
+  private async enrichService(service: ServiceDocument) {
+    try {
+      const business = await this.businessModel.findById(service.businessId);
+      const productImages = await this.uploadService.getSignedUrl(
+        service.pictures,
+      );
+      return {
+        ...service.toObject(),
+        business,
+        pictures: productImages,
+      };
+    } catch (error) {
+      this.logger.error('Error enriching service business name', error);
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+    }
   }
 }
