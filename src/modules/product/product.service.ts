@@ -18,13 +18,24 @@ export class ProductService {
 
   async createProduct(dto: CreateProductDto): Promise<ReturnType> {
     const created = await this.productModel.create({ ...dto });
-    return new ReturnType({ success: true, message: 'Product created', data: created });
+    return new ReturnType({
+      success: true,
+      message: 'Product created',
+      data: created,
+    });
   }
 
   async getProductById(id: string): Promise<ReturnType> {
-    const product = await this.productModel.findOne({ _id: id, isDeleted: false });
+    const product = await this.productModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
     if (!product) throw new NotFoundException('Product not found');
-    return new ReturnType({ success: true, message: 'Product fetched', data: product });
+    return new ReturnType({
+      success: true,
+      message: 'Product fetched',
+      data: product,
+    });
   }
 
   async editProduct(id: string, dto: EditProductDto): Promise<ReturnType> {
@@ -34,7 +45,11 @@ export class ProductService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Product not found');
-    return new ReturnType({ success: true, message: 'Product updated', data: updated });
+    return new ReturnType({
+      success: true,
+      message: 'Product updated',
+      data: updated,
+    });
   }
 
   async softDeleteProduct(id: string): Promise<ReturnType> {
@@ -48,7 +63,11 @@ export class ProductService {
       { new: true },
     );
     if (!deleted) throw new NotFoundException('Product not found');
-    return new ReturnType({ success: true, message: 'Product deleted', data: deleted });
+    return new ReturnType({
+      success: true,
+      message: 'Product deleted',
+      data: deleted,
+    });
   }
 
   async getBusinessProducts(
@@ -58,12 +77,16 @@ export class ProductService {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.productModel
-        .find({ businessId, isDeleted: false, enabled: true })
+        .find({ businessId, isDeleted: false })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
-      this.productModel.countDocuments({ businessId, isDeleted: false, enabled: true }),
+      this.productModel.countDocuments({
+        businessId,
+        isDeleted: false,
+        enabled: true,
+      }),
     ]);
 
     return new PaginatedReturnType<ProductDocument[]>({

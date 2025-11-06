@@ -10,6 +10,7 @@ import { Admin, AdminSchema } from '@schemas/Admin.schema';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { EmailService } from '@/common/services/email/email.service';
 import { UploadService } from '../upload/upload.service';
+import { Business, BusinessSchema } from '@/schemas/Business.schema';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { UploadService } from '../upload/upload.service';
       { name: User.name, schema: UserSchema },
       { name: Otp.name, schema: OtpSchema },
       { name: Admin.name, schema: AdminSchema },
+      { name: Business.name, schema: BusinessSchema },
     ]),
   ],
   controllers: [UserController],

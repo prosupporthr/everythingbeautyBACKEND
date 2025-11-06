@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Service as ServiceEntity, ServiceDocument } from '@schemas/Service.Schema';
+import {
+  Service as ServiceEntity,
+  ServiceDocument,
+} from '@schemas/Service.Schema';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
@@ -17,13 +20,24 @@ export class ServiceService {
 
   async createService(dto: CreateServiceDto): Promise<ReturnType> {
     const created = await this.serviceModel.create({ ...dto });
-    return new ReturnType({ success: true, message: 'Service created', data: created });
+    return new ReturnType({
+      success: true,
+      message: 'Service created',
+      data: created,
+    });
   }
 
   async getServiceById(id: string): Promise<ReturnType> {
-    const service = await this.serviceModel.findOne({ _id: id, isDeleted: false });
+    const service = await this.serviceModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
     if (!service) throw new NotFoundException('Service not found');
-    return new ReturnType({ success: true, message: 'Service fetched', data: service });
+    return new ReturnType({
+      success: true,
+      message: 'Service fetched',
+      data: service,
+    });
   }
 
   async editService(id: string, dto: EditServiceDto): Promise<ReturnType> {
@@ -33,7 +47,11 @@ export class ServiceService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Service not found');
-    return new ReturnType({ success: true, message: 'Service updated', data: updated });
+    return new ReturnType({
+      success: true,
+      message: 'Service updated',
+      data: updated,
+    });
   }
 
   async softDeleteService(id: string): Promise<ReturnType> {
@@ -47,7 +65,11 @@ export class ServiceService {
       { new: true },
     );
     if (!deleted) throw new NotFoundException('Service not found');
-    return new ReturnType({ success: true, message: 'Service deleted', data: deleted });
+    return new ReturnType({
+      success: true,
+      message: 'Service deleted',
+      data: deleted,
+    });
   }
 
   async getBusinessServices(
@@ -57,12 +79,16 @@ export class ServiceService {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.serviceModel
-        .find({ businessId, isDeleted: false, enabled: true })
+        .find({ businessId, isDeleted: false })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
-      this.serviceModel.countDocuments({ businessId, isDeleted: false, enabled: true }),
+      this.serviceModel.countDocuments({
+        businessId,
+        isDeleted: false,
+        enabled: true,
+      }),
     ]);
 
     return new PaginatedReturnType<ServiceDocument[]>({

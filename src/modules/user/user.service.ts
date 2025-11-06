@@ -18,12 +18,14 @@ import { OTP_TYPE } from '@schemas/Otp.schema';
 import { JwtService } from '@nestjs/jwt';
 import { UploadService } from '../upload/upload.service';
 import { ConfigService } from '@nestjs/config';
+import { Business } from '@/schemas/Business.schema';
 
 @Injectable()
 export class UserService {
   private logger = new Logger(UserService.name);
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Business.name) private readonly businessModel: Model<Business>,
     private readonly otpService: OtpService,
     private readonly jwtService: JwtService,
     private uploadService: UploadService,
@@ -177,10 +179,15 @@ export class UserService {
     const profilePicture = user.profilePicture
       ? await this.uploadService.getSignedUrl(user.profilePicture)
       : null;
+    const business = await this.businessModel.findOne({
+      isDeleted: false,
+      userId: user._id,
+    });
     return {
       ...user.toJSON(),
       id: user._id,
       profilePicture,
+      business,
     };
   }
 }
