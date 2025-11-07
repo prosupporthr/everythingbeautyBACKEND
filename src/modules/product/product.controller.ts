@@ -1,5 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { EditProductDto } from './dto/edit-product.dto';
@@ -24,9 +41,22 @@ export class ProductController {
     return this.productService.createProduct(dto);
   }
 
+  @Get('filter')
+  @ApiOperation({ summary: 'Get filtered products (paginated)' })
+  @ApiOkResponse({ description: 'Filtered products fetched' })
+  async getFilteredProducts(
+    @Query() query: ProductFilterQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.productService.getFilteredProducts(query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get product by ID' })
-  @ApiParam({ name: 'id', description: 'Product ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Product fetched' })
   async getProductById(@Param('id') id: string): Promise<ReturnType> {
     return this.productService.getProductById(id);
@@ -34,7 +64,11 @@ export class ProductController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Edit a product' })
-  @ApiParam({ name: 'id', description: 'Product ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiBody({ type: EditProductDto })
   @ApiOkResponse({ description: 'Product updated' })
   async editProduct(
@@ -46,7 +80,11 @@ export class ProductController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft delete a product' })
-  @ApiParam({ name: 'id', description: 'Product ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Product ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Product deleted' })
   async softDeleteProduct(@Param('id') id: string): Promise<ReturnType> {
     return this.productService.softDeleteProduct(id);
@@ -54,21 +92,16 @@ export class ProductController {
 
   @Get('business/:businessId')
   @ApiOperation({ summary: 'Get all products for a business (paginated)' })
-  @ApiParam({ name: 'businessId', description: 'Business ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Business products fetched (paginated)' })
   async getBusinessProducts(
     @Param('businessId') businessId: string,
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.productService.getBusinessProducts(businessId, query);
-  }
-
-  @Get('filter')
-  @ApiOperation({ summary: 'Get filtered products (paginated)' })
-  @ApiOkResponse({ description: 'Filtered products fetched' })
-  async getFilteredProducts(
-    @Query() query: ProductFilterQueryDto,
-  ): Promise<PaginatedReturnType> {
-    return this.productService.getFilteredProducts(query);
   }
 }

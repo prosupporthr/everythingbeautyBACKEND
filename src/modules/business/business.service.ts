@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Business, BusinessDocument } from '@schemas/Business.schema';
@@ -9,9 +14,11 @@ import { EditBusinessDto } from './dto/edit-business.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { UploadService } from '../upload/upload.service';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class BusinessService {
+  private logger = new Logger('BusinessService');
   constructor(
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
@@ -99,7 +106,7 @@ export class BusinessService {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.businessModel
-        .find({ userId, enabled: true, isDeleted: false })
+        .find({ userId: new Types.ObjectId(userId), isDeleted: false })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
@@ -131,12 +138,12 @@ export class BusinessService {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
       this.businessModel
-        .find({ enabled: true, isDeleted: false })
+        .find({ isDeleted: false })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
-      this.businessModel.countDocuments({ enabled: true, isDeleted: false }),
+      this.businessModel.countDocuments({ isDeleted: false }),
     ]);
 
     const enrichedBusinesses = await Promise.all(
@@ -157,34 +164,40 @@ export class BusinessService {
     limit = 10,
     q,
   }: BusinessFilterQueryDto): Promise<PaginatedReturnType<BusinessDocument[]>> {
-    const skip = (page - 1) * limit;
-    const filter: Record<string, any> = { isDeleted: false };
+    try {
+      this.logger.log('getFilteredBusinesses', { page, limit, q });
+      const skip = (page - 1) * limit;
+      const filter: Record<string, any> = { isDeleted: false };
 
-    // Text search across name and location
-    const textFilter = q ? { $text: { $search: q } } : {};
-    const finalFilter = { ...filter, ...textFilter };
+      // Text search across name and location
+      const textFilter = q ? { $text: { $search: q } } : {};
+      const finalFilter = { ...filter, ...textFilter };
 
-    const [data, total] = await Promise.all([
-      this.businessModel
-        .find(finalFilter)
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 })
-        .exec(),
-      this.businessModel.countDocuments(finalFilter),
-    ]);
+      const [data, total] = await Promise.all([
+        this.businessModel
+          .find(finalFilter)
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec(),
+        this.businessModel.countDocuments(finalFilter),
+      ]);
 
-    const enrichedBusinesses = await Promise.all(
-      data.map(async (business) => this.enrichedBusiness(business)),
-    );
+      const enrichedBusinesses = await Promise.all(
+        data.map(async (business) => this.enrichedBusiness(business)),
+      );
 
-    return new PaginatedReturnType<BusinessDocument[]>({
-      success: true,
-      message: 'Filtered businesses fetched',
-      data: enrichedBusinesses,
-      page,
-      total,
-    });
+      return new PaginatedReturnType<BusinessDocument[]>({
+        success: true,
+        message: 'Filtered businesses fetched',
+        data: enrichedBusinesses,
+        page,
+        total,
+      });
+    } catch (error) {
+      this.logger.error('Error fetching filtered businesses');
+      throw new BadRequestException('Error fetching filtered businesses');
+    }
   }
 
   async enrichedBusiness(business: BusinessDocument) {

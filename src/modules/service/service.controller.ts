@@ -40,6 +40,20 @@ export class ServiceController {
     return this.serviceService.createService(dto);
   }
 
+  @Get('all')
+  @ApiOperation({ summary: 'Get all services for a business (paginated)' })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({ description: 'Business services fetched (paginated)' })
+  async getAllServices(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.serviceService.getAllServices(query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get service by ID' })
   @ApiParam({
@@ -93,19 +107,5 @@ export class ServiceController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.serviceService.getBusinessServices(businessId, query);
-  }
-
-  @Get('all')
-  @ApiOperation({ summary: 'Get all services for a business (paginated)' })
-  @ApiParam({
-    name: 'businessId',
-    description: 'Business ID',
-    example: '64f7c2d91c2f4a0012345678',
-  })
-  @ApiOkResponse({ description: 'Business services fetched (paginated)' })
-  async getAllServices(
-    @Query() query: PaginationQueryDto,
-  ): Promise<PaginatedReturnType> {
-    return this.serviceService.getAllServices(query);
   }
 }

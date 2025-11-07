@@ -67,6 +67,15 @@ export class BusinessController {
     return this.businessService.softDeleteBusiness(id);
   }
 
+  @Get('filter')
+  @ApiOperation({ summary: 'Get filtered businesses (paginated)' })
+  @ApiOkResponse({ description: 'Filtered businesses fetched' })
+  async getFilteredBusinesses(
+    @Query() query: BusinessFilterQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.businessService.getFilteredBusinesses(query);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get business by ID' })
   @ApiParam({
@@ -101,14 +110,5 @@ export class BusinessController {
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.businessService.getAllBusinesses(query);
-  }
-
-  @Get('filter')
-  @ApiOperation({ summary: 'Get filtered businesses (paginated)' })
-  @ApiOkResponse({ description: 'Filtered businesses fetched' })
-  async getFilteredBusinesses(
-    @Query() query: BusinessFilterQueryDto,
-  ): Promise<PaginatedReturnType> {
-    return this.businessService.getFilteredBusinesses(query);
   }
 }
