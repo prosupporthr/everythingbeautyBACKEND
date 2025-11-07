@@ -117,19 +117,15 @@ export class ProductService {
     limit = 10,
     q,
     businessId,
-    enabled = true,
     allowReview,
     minPrice,
     maxPrice,
-    minHourlyRate,
-    maxHourlyRate,
     color,
   }: ProductFilterQueryDto): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
     const filter: Record<string, any> = { isDeleted: false };
 
     if (businessId) filter.businessId = businessId;
-    if (enabled !== undefined) filter.enabled = enabled;
     if (allowReview !== undefined) filter.allowReview = allowReview;
     if (color) filter.colors = { $in: [color] };
 
@@ -137,12 +133,6 @@ export class ProductService {
       filter.price = {};
       if (minPrice !== undefined) filter.price.$gte = minPrice;
       if (maxPrice !== undefined) filter.price.$lte = maxPrice;
-    }
-
-    if (minHourlyRate !== undefined || maxHourlyRate !== undefined) {
-      filter.hourlyRate = {};
-      if (minHourlyRate !== undefined) filter.hourlyRate.$gte = minHourlyRate;
-      if (maxHourlyRate !== undefined) filter.hourlyRate.$lte = maxHourlyRate;
     }
 
     const textFilter = q ? { $text: { $search: q } } : {};

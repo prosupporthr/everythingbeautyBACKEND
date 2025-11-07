@@ -33,10 +33,11 @@ export class ServiceService {
 
   async createService(dto: CreateServiceDto): Promise<ReturnType> {
     const created = await this.serviceModel.create({ ...dto });
+    const enriched = await this.enrichService(created);
     return new ReturnType({
       success: true,
       message: 'Service created',
-      data: created,
+      data: enriched,
     });
   }
 
@@ -46,10 +47,11 @@ export class ServiceService {
       isDeleted: false,
     });
     if (!service) throw new NotFoundException('Service not found');
+    const enriched = await this.enrichService(service);
     return new ReturnType({
       success: true,
       message: 'Service fetched',
-      data: service,
+      data: enriched,
     });
   }
 
@@ -60,10 +62,11 @@ export class ServiceService {
       { new: true },
     );
     if (!updated) throw new NotFoundException('Service not found');
+    const enriched = await this.enrichService(updated);
     return new ReturnType({
       success: true,
       message: 'Service updated',
-      data: updated,
+      data: enriched,
     });
   }
 
@@ -78,6 +81,7 @@ export class ServiceService {
       { new: true },
     );
     if (!deleted) throw new NotFoundException('Service not found');
+    const enriched = await this.enrichService(deleted);
     return new ReturnType({
       success: true,
       message: 'Service deleted',
@@ -104,10 +108,45 @@ export class ServiceService {
       }),
     ]);
 
+    const enrichedServices = await Promise.all(
+      data.map((o) => this.enrichService(o)),
+    );
+
     return new PaginatedReturnType<ServiceDocument[]>({
       success: true,
       message: 'Business services fetched',
-      data: data,
+      data: enrichedServices,
+      page,
+      total,
+    });
+  }
+
+  async getAllServices({
+    page = 1,
+    limit = 10,
+  }: PaginationQueryDto): Promise<PaginatedReturnType<ServiceDocument[]>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.serviceModel
+        .find({ isDeleted: false })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.serviceModel.countDocuments({
+        isDeleted: false,
+        enabled: true,
+      }),
+    ]);
+
+    const enrichedServices = await Promise.all(
+      data.map((o) => this.enrichService(o)),
+    );
+
+    return new PaginatedReturnType<ServiceDocument[]>({
+      success: true,
+      message: 'All services fetched',
+      data: enrichedServices,
       page,
       total,
     });

@@ -8,12 +8,14 @@ import { CreateBusinessDto } from './dto/create-business.dto';
 import { EditBusinessDto } from './dto/edit-business.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class BusinessService {
   constructor(
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
+    private readonly uploadService: UploadService,
   ) {}
 
   async createBusiness(dto: CreateBusinessDto): Promise<ReturnType> {
@@ -25,10 +27,11 @@ export class BusinessService {
       throw new NotFoundException('You already have a business');
     }
     const created = await this.businessModel.create({ ...dto });
+    const enrichedBusiness = await this.enrichedBusiness(created);
     return new ReturnType({
       success: true,
       message: 'Business created successfully',
-      data: created,
+      data: enrichedBusiness,
     });
   }
 
@@ -42,11 +45,11 @@ export class BusinessService {
     if (!updated) {
       throw new NotFoundException('Business not found');
     }
-
+    const enrichedBusiness = await this.enrichedBusiness(updated);
     return new ReturnType({
       success: true,
       message: 'Business updated successfully',
-      data: updated,
+      data: enrichedBusiness,
     });
   }
 
@@ -81,10 +84,11 @@ export class BusinessService {
     if (!business) {
       throw new NotFoundException('Business not found');
     }
+    const enrichedBusiness = await this.enrichedBusiness(business);
     return new ReturnType({
       success: true,
       message: 'Business fetched',
-      data: business,
+      data: enrichedBusiness,
     });
   }
 
@@ -107,10 +111,14 @@ export class BusinessService {
       }),
     ]);
 
+    const enrichedBusinesses = await Promise.all(
+      data.map(async (business) => this.enrichedBusiness(business)),
+    );
+
     return new PaginatedReturnType<BusinessDocument[]>({
       success: true,
       message: 'User businesses fetched',
-      data,
+      data: enrichedBusinesses,
       page,
       total,
     });
@@ -131,10 +139,14 @@ export class BusinessService {
       this.businessModel.countDocuments({ enabled: true, isDeleted: false }),
     ]);
 
+    const enrichedBusinesses = await Promise.all(
+      data.map(async (business) => this.enrichedBusiness(business)),
+    );
+
     return new PaginatedReturnType<BusinessDocument[]>({
       success: true,
       message: 'Businesses fetched',
-      data,
+      data: enrichedBusinesses,
       page,
       total,
     });
@@ -144,28 +156,9 @@ export class BusinessService {
     page = 1,
     limit = 10,
     q,
-    chargeTiming,
-    approved,
-    enabled = true,
-    minRating,
-    maxRating,
-    day,
-    userId,
   }: BusinessFilterQueryDto): Promise<PaginatedReturnType<BusinessDocument[]>> {
     const skip = (page - 1) * limit;
     const filter: Record<string, any> = { isDeleted: false };
-
-    // Default enabled true unless explicitly provided
-    if (enabled !== undefined) filter.enabled = enabled;
-    if (approved !== undefined) filter.approved = approved;
-    if (chargeTiming) filter.chargeTiming = chargeTiming;
-    if (userId) filter.userId = userId;
-    if (typeof day === 'number') filter.days = { $in: [day] };
-    if (minRating !== undefined || maxRating !== undefined) {
-      filter.rating = {};
-      if (minRating !== undefined) filter.rating.$gte = minRating;
-      if (maxRating !== undefined) filter.rating.$lte = maxRating;
-    }
 
     // Text search across name and location
     const textFilter = q ? { $text: { $search: q } } : {};
@@ -181,12 +174,26 @@ export class BusinessService {
       this.businessModel.countDocuments(finalFilter),
     ]);
 
+    const enrichedBusinesses = await Promise.all(
+      data.map(async (business) => this.enrichedBusiness(business)),
+    );
+
     return new PaginatedReturnType<BusinessDocument[]>({
       success: true,
       message: 'Filtered businesses fetched',
-      data,
+      data: enrichedBusinesses,
       page,
       total,
     });
+  }
+
+  async enrichedBusiness(business: BusinessDocument) {
+    const pictures = await this.uploadService.getSignedUrl(
+      business.toJSON().pictures,
+    );
+    return {
+      ...business.toObject(),
+      pictures,
+    };
   }
 }

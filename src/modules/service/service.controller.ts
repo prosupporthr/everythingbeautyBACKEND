@@ -1,5 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ServiceService } from './service.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { EditServiceDto } from './dto/edit-service.dto';
@@ -25,7 +42,11 @@ export class ServiceController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get service by ID' })
-  @ApiParam({ name: 'id', description: 'Service ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Service ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Service fetched' })
   async getServiceById(@Param('id') id: string): Promise<ReturnType> {
     return this.serviceService.getServiceById(id);
@@ -33,7 +54,11 @@ export class ServiceController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Edit a service' })
-  @ApiParam({ name: 'id', description: 'Service ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Service ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiBody({ type: EditServiceDto })
   @ApiOkResponse({ description: 'Service updated' })
   async editService(
@@ -45,7 +70,11 @@ export class ServiceController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft delete a service' })
-  @ApiParam({ name: 'id', description: 'Service ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Service ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Service deleted' })
   async softDeleteService(@Param('id') id: string): Promise<ReturnType> {
     return this.serviceService.softDeleteService(id);
@@ -53,12 +82,30 @@ export class ServiceController {
 
   @Get('business/:businessId')
   @ApiOperation({ summary: 'Get all services for a business (paginated)' })
-  @ApiParam({ name: 'businessId', description: 'Business ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Business services fetched (paginated)' })
   async getBusinessServices(
     @Param('businessId') businessId: string,
     @Query() query: PaginationQueryDto,
   ): Promise<PaginatedReturnType> {
     return this.serviceService.getBusinessServices(businessId, query);
+  }
+
+  @Get('all')
+  @ApiOperation({ summary: 'Get all services for a business (paginated)' })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({ description: 'Business services fetched (paginated)' })
+  async getAllServices(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.serviceService.getAllServices(query);
   }
 }
