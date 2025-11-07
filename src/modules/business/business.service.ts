@@ -15,6 +15,7 @@ import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { UploadService } from '../upload/upload.service';
 import { Types } from 'mongoose';
+import { User } from '@/schemas/User.schema';
 
 @Injectable()
 export class BusinessService {
@@ -22,6 +23,7 @@ export class BusinessService {
   constructor(
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly uploadService: UploadService,
   ) {}
 
@@ -204,9 +206,11 @@ export class BusinessService {
     const pictures = await this.uploadService.getSignedUrl(
       business.toJSON().pictures,
     );
+    const creator = await this.userModel.findById(business.userId);
     return {
       ...business.toObject(),
       pictures,
+      creator,
     };
   }
 }
