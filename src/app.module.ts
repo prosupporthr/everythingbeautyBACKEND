@@ -13,6 +13,7 @@ import { ProductModule } from './modules/product/product.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { OrderModule } from './modules/order/order.module';
+import { ReviewModule } from './modules/review/review.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -73,6 +74,7 @@ const logger = new Logger('AppModule');
     UploadModule,
     BookingModule,
     OrderModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],

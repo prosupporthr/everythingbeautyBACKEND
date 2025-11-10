@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserDocument } from '@schemas/User.schema';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { AUTH_TYPE, User, UserDocument } from '@schemas/User.schema';
 import { ReturnType } from '@common/classes/ReturnType';
 import { SignupEmailDto } from './dto/signup-email.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -19,6 +21,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UploadService } from '../upload/upload.service';
 import { ConfigService } from '@nestjs/config';
 import { Business } from '@/schemas/Business.schema';
+import { LoginGoogleDto } from './dto/login-google.dto';
 
 @Injectable()
 export class UserService {
@@ -30,6 +33,7 @@ export class UserService {
     private readonly jwtService: JwtService,
     private uploadService: UploadService,
     private configService: ConfigService,
+    private httpService: HttpService,
   ) {}
 
   async signUpWithEmail({ email }: SignupEmailDto): Promise<ReturnType> {
@@ -189,5 +193,83 @@ export class UserService {
       profilePicture,
       business,
     };
+  }
+
+  async signInWithGoogle({ accessToken }: LoginGoogleDto): Promise<ReturnType> {
+    try {
+      if (!accessToken || typeof accessToken !== 'string') {
+        throw new BadRequestException('Invalid Google access token');
+      }
+
+      const response = await firstValueFrom(
+        this.httpService.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      );
+
+      const {
+        email,
+        given_name: givenName,
+        family_name: familyName,
+        picture,
+      } = response?.data || {};
+
+      if (!email) {
+        throw new BadRequestException('Google account email is missing');
+      }
+
+      const normalizedEmail = String(email).toLowerCase();
+      let user = await this.userModel.findOne({
+        email: normalizedEmail,
+        authType: AUTH_TYPE.GOOGLE,
+      });
+
+      if (!user) {
+        user = await this.userModel.create({
+          firstName: givenName ?? '',
+          lastName: familyName ?? '',
+          email: normalizedEmail,
+          emailVerified: true,
+          profilePicture: '',
+        });
+      } else {
+        const updated = await this.userModel.findByIdAndUpdate(
+          user._id,
+          {
+            emailVerified: true,
+            firstName: user.firstName || givenName || '',
+            lastName: user.lastName || familyName || '',
+          },
+          { new: true },
+        );
+        if (!updated) throw new NotFoundException('User not found');
+        user = updated;
+      }
+
+      const token = await this.jwtService.signAsync(
+        {
+          id: String(user._id),
+          email: user.email,
+        },
+        {
+          expiresIn: '7d',
+          secret: this.configService.get('JWT_SECRET'),
+        },
+      );
+
+      return new ReturnType({
+        success: true,
+        message: 'Google sign-in successful',
+        data: { user, token },
+      });
+    } catch (error) {
+      this.logger.error(error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new BadRequestException('What you were trying to do did not work');
+    }
   }
 }

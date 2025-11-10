@@ -113,6 +113,32 @@ export class OrderService {
     });
   }
 
+  async getProductOrders(
+    productId: string,
+    { page = 1, limit = 10 }: PaginationQueryDto,
+  ): Promise<PaginatedReturnType<OrderDocument[]>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.orderModel
+        .find({ productId, isDeleted: false })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.orderModel.countDocuments({ productId, isDeleted: false }),
+    ]);
+
+    const enrichedOrders = await Promise.all(data.map((o) => this.enrichOrder(o)));
+
+    return new PaginatedReturnType<OrderDocument[]>({
+      success: true,
+      message: 'Product orders fetched',
+      data: enrichedOrders,
+      page,
+      total,
+    });
+  }
+
   private async enrichOrder(order: OrderDocument) {
     try {
       const [user, product, business] = await Promise.all([

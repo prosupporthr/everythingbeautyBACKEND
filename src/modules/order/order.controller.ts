@@ -76,4 +76,17 @@ export class OrderController {
   ): Promise<PaginatedReturnType> {
     return this.orderService.getBusinessOrders(businessId, query);
   }
+
+  @Get('product/:productId')
+  @ApiOperation({ summary: 'Get product orders (paginated)' })
+  @ApiParam({ name: 'productId', description: 'Product ID', example: '64f7c2d91c2f4a00fedcba98' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Product orders fetched' })
+  async getProductOrders(
+    @Param('productId') productId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.orderService.getProductOrders(productId, query);
+  }
 }

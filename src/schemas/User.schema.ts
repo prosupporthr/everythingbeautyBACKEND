@@ -8,6 +8,11 @@ export enum GENDER {
   FEMALE = 'female',
 }
 
+export enum AUTH_TYPE {
+  GOOGLE = 'google',
+  EMAIL = 'email',
+}
+
 export enum PAYMENT_PLAN {
   FREE = 'free',
   PREMIUM = 'premium',
@@ -104,6 +109,13 @@ export class User extends MetaSchema {
     default: false,
   })
   isSuspended: boolean;
+
+  @Prop({
+    required: true,
+    default: AUTH_TYPE.EMAIL,
+    enum: AUTH_TYPE,
+  })
+  authType: AUTH_TYPE;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

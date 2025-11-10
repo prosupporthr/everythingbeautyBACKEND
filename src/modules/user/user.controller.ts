@@ -21,6 +21,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { EditUserDto } from './dto/edit-user.dto';
 import { LoginEmailDto } from './dto/login-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
+import { LoginGoogleDto } from './dto/login-google.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
@@ -53,6 +54,14 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'OTP verified, token returned' })
   async verifyOtp(@Body() dto: VerifyOtpDto): Promise<ReturnType> {
     return this.userService.verifyOtp(dto);
+  }
+
+  @Post('login/google')
+  @ApiOperation({ summary: 'Sign in with Google and return token' })
+  @ApiBody({ type: LoginGoogleDto })
+  @ApiResponse({ status: 200, description: 'Google sign-in successful' })
+  async signInWithGoogle(@Body() dto: LoginGoogleDto): Promise<ReturnType> {
+    return this.userService.signInWithGoogle(dto);
   }
 
   @Patch(':id')
