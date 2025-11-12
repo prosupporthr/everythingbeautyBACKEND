@@ -11,6 +11,7 @@ import { OtpService } from '@/common/services/otp/otp.service';
 import { EmailService } from '@/common/services/email/email.service';
 import { UploadService } from '../upload/upload.service';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
+import { HttpModule, HttpService } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Business, BusinessSchema } from '@/schemas/Business.schema';
       { name: Admin.name, schema: AdminSchema },
       { name: Business.name, schema: BusinessSchema },
     ]),
+    HttpModule,
   ],
   controllers: [UserController],
   providers: [

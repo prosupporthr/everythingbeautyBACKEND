@@ -75,6 +75,11 @@ const logger = new Logger('AppModule');
     BookingModule,
     OrderModule,
     ReviewModule,
+    HttpModule.register({
+      global: true,
+      timeout: 5000,
+      maxRedirects: 5,
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
