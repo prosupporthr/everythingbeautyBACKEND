@@ -16,6 +16,7 @@ import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { UploadService } from '../upload/upload.service';
 import { Types } from 'mongoose';
 import { User } from '@/schemas/User.schema';
+import { Service } from '@/schemas/Service.Schema';
 
 @Injectable()
 export class BusinessService {
@@ -24,6 +25,7 @@ export class BusinessService {
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Service.name) private readonly serviceModel: Model<Service>,
     private readonly uploadService: UploadService,
   ) {}
 
@@ -207,10 +209,14 @@ export class BusinessService {
       business.toJSON().pictures,
     );
     const creator = await this.userModel.findById(business.userId);
+    const services = await this.serviceModel.find({
+      businessId: business.toJSON()._id,
+    });
     return {
       ...business.toObject(),
       pictures,
       creator,
+      services,
     };
   }
 }
