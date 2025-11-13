@@ -27,13 +27,13 @@ import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
-@UseGuards(UserAuthGuard)
 @ApiTags('Product')
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Create a product' })
   @ApiBody({ type: CreateProductDto })
   @ApiOkResponse({ description: 'Product created' })
@@ -63,6 +63,7 @@ export class ProductController {
   }
 
   @Patch(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Edit a product' })
   @ApiParam({
     name: 'id',
@@ -79,6 +80,7 @@ export class ProductController {
   }
 
   @Delete(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Soft delete a product' })
   @ApiParam({
     name: 'id',

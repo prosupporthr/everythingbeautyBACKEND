@@ -27,13 +27,13 @@ import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
-@UseGuards(UserAuthGuard)
 @ApiTags('business')
 @Controller('business')
 export class BusinessController {
   constructor(private readonly businessService: BusinessService) {}
 
   @Post()
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Create a business' })
   @ApiCreatedResponse({ description: 'Business created successfully' })
   async createBusiness(@Body() dto: CreateBusinessDto): Promise<ReturnType> {
@@ -41,6 +41,7 @@ export class BusinessController {
   }
 
   @Patch(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Edit a business' })
   @ApiParam({
     name: 'id',
@@ -56,6 +57,7 @@ export class BusinessController {
   }
 
   @Delete(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Soft delete a business' })
   @ApiParam({
     name: 'id',

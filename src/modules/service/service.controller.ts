@@ -26,13 +26,13 @@ import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
-@UseGuards(UserAuthGuard)
 @ApiTags('Service')
 @Controller('service')
 export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
 
   @Post()
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Create a service' })
   @ApiBody({ type: CreateServiceDto })
   @ApiOkResponse({ description: 'Service created' })
@@ -67,6 +67,7 @@ export class ServiceController {
   }
 
   @Patch(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Edit a service' })
   @ApiParam({
     name: 'id',
@@ -83,6 +84,7 @@ export class ServiceController {
   }
 
   @Delete(':id')
+  @UseGuards(UserAuthGuard)
   @ApiOperation({ summary: 'Soft delete a service' })
   @ApiParam({
     name: 'id',
