@@ -161,7 +161,7 @@ export class ProductService {
     });
   }
 
-  private async enrichProduct(product: ProductDocument) {
+  public async enrichProduct(product: ProductDocument) {
     try {
       const business = await this.businessModel.findById(product.businessId);
       const productImages = await this.uploadService.getSignedUrl(

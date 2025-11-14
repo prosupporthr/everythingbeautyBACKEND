@@ -13,6 +13,8 @@ import { ChangeBookingStatusDto } from './dto/change-booking-status.dto';
 import { BookingBusinessQueryDto } from './dto/booking-business-query.dto';
 import { Service, ServiceDocument } from '@/schemas/Service.Schema';
 import { User } from '@/schemas/User.schema';
+import { UserService } from '../user/user.service';
+import { ServiceService } from '../service/service.service';
 
 @Injectable()
 export class BookingService {
@@ -23,6 +25,8 @@ export class BookingService {
     @InjectModel(Service.name)
     private readonly serviceModel: Model<ServiceDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    private userService: UserService,
+    private serviceService: ServiceService,
   ) {}
 
   async createBooking(dto: CreateBookingDto): Promise<ReturnType> {
@@ -128,12 +132,13 @@ export class BookingService {
     try {
       const service = await this.serviceModel.findById(booking.serviceId);
       const user = await this.userModel.findById(booking.userId);
+
       if (!service) throw new NotFoundException('Service not found');
       if (!user) throw new NotFoundException('User not found');
       return {
         ...booking.toObject(),
-        service,
-        user,
+        service: await this.serviceService.enrichService(service),
+        user: await this.userService.enrichUser(user),
       };
     } catch (error) {
       this.logger.error(error);

@@ -152,7 +152,7 @@ export class ServiceService {
     });
   }
 
-  private async enrichService(service: ServiceDocument) {
+  public async enrichService(service: ServiceDocument) {
     try {
       const business = await this.businessModel.findById(service.businessId);
       const productImages = await this.uploadService.getSignedUrl(

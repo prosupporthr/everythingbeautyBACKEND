@@ -179,7 +179,7 @@ export class UserService {
     }
   }
 
-  private async enrichUser(user: UserDocument) {
+  public async enrichUser(user: UserDocument) {
     const profilePicture = user.profilePicture
       ? await this.uploadService.getSignedUrl(user.profilePicture)
       : null;

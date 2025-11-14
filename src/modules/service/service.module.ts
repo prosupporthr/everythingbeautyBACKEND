@@ -22,6 +22,6 @@ import { UploadService } from '../upload/upload.service';
   ],
   controllers: [ServiceController],
   providers: [ServiceService, JwtService, UploadService],
-  exports: [ServiceService],
+  exports: [ServiceService, MongooseModule],
 })
 export class ServiceModule {}
