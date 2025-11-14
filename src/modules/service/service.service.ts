@@ -19,6 +19,7 @@ import { Booking, BookingDocument } from '@/schemas/Booking.schema';
 import { User } from '@/schemas/User.schema';
 import { Business } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
+import { BusinessService } from '../business/business.service';
 
 @Injectable()
 export class ServiceService {
@@ -29,6 +30,7 @@ export class ServiceService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Business.name) private readonly businessModel: Model<Business>,
     private uploadService: UploadService,
+    private businessService: BusinessService,
   ) {}
 
   async createService(dto: CreateServiceDto): Promise<ReturnType> {
@@ -158,9 +160,12 @@ export class ServiceService {
       const productImages = await this.uploadService.getSignedUrl(
         service.pictures,
       );
+      const businessData = await this.businessService.enrichedBusiness(
+        business as any,
+      );
       return {
         ...service.toObject(),
-        business,
+        business: businessData,
         pictures: productImages,
       };
     } catch (error) {

@@ -7,6 +7,8 @@ import { User, UserSchema } from '@/schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
 import { UploadService } from '../upload/upload.service';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
+import { BusinessService } from '../business/business.service';
+import { BusinessModule } from '../business/business.module';
 
 @Module({
   imports: [
@@ -15,9 +17,10 @@ import { Business, BusinessSchema } from '@/schemas/Business.schema';
       { name: User.name, schema: UserSchema },
       { name: Business.name, schema: BusinessSchema },
     ]),
+    BusinessModule,
   ],
   controllers: [ProductController],
-  providers: [ProductService, JwtService, UploadService],
+  providers: [ProductService, JwtService, UploadService, BusinessService],
   exports: [ProductService],
 })
 export class ProductModule {}

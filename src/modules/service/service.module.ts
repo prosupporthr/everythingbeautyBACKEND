@@ -11,6 +11,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Business } from '@/schemas/Business.schema';
 import { BusinessSchema } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
+import { BusinessModule } from '../business/business.module';
+import { BusinessService } from '../business/business.service';
 
 @Module({
   imports: [
@@ -19,9 +21,10 @@ import { UploadService } from '../upload/upload.service';
       { name: User.name, schema: UserSchema },
       { name: Business.name, schema: BusinessSchema },
     ]),
+    BusinessModule,
   ],
   controllers: [ServiceController],
-  providers: [ServiceService, JwtService, UploadService],
+  providers: [ServiceService, JwtService, UploadService, BusinessService],
   exports: [ServiceService, MongooseModule],
 })
 export class ServiceModule {}

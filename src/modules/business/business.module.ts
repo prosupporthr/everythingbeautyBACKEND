@@ -18,6 +18,6 @@ import { Service, ServiceSchema } from '@/schemas/Service.Schema';
   ],
   controllers: [BusinessController],
   providers: [BusinessService, JwtService, UploadService],
-  exports: [BusinessService],
+  exports: [BusinessService, MongooseModule],
 })
 export class BusinessModule {}

@@ -13,6 +13,7 @@ import { UserModule } from '../user/user.module';
 import { ServiceModule } from '../service/service.module';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { UploadService } from '../upload/upload.service';
+import { BusinessModule } from '../business/business.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UploadService } from '../upload/upload.service';
     ]),
     UserModule,
     ServiceModule,
+    BusinessModule,
   ],
   controllers: [BookingController],
   providers: [

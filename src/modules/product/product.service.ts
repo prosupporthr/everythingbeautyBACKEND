@@ -11,6 +11,9 @@ import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { Business } from '@/schemas/Business.schema';
 import { BusinessDocument } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
+import { User, UserDocument } from '@/schemas/User.schema';
+import { UserService } from '../user/user.service';
+import { BusinessService } from '../business/business.service';
 
 @Injectable()
 export class ProductService {
@@ -21,6 +24,7 @@ export class ProductService {
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
     private uploadService: UploadService,
+    private businessService: BusinessService,
   ) {}
 
   async createProduct(dto: CreateProductDto): Promise<ReturnType> {
@@ -167,9 +171,12 @@ export class ProductService {
       const productImages = await this.uploadService.getSignedUrl(
         product.pictures,
       );
+      const businessData = await this.businessService.enrichedBusiness(
+        business as any,
+      );
       return {
         ...product.toObject(),
-        business,
+        business: businessData,
         pictures: productImages,
       };
     } catch (error) {
