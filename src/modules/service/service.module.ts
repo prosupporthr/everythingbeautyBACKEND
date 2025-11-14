@@ -13,6 +13,10 @@ import { BusinessSchema } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
 import { BusinessModule } from '../business/business.module';
 import { BusinessService } from '../business/business.service';
+import { UserService } from '../user/user.service';
+import { OtpService } from '@/common/services/otp/otp.service';
+import { EmailService } from '@/common/services/email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -24,7 +28,19 @@ import { BusinessService } from '../business/business.service';
     BusinessModule,
   ],
   controllers: [ServiceController],
-  providers: [ServiceService, JwtService, UploadService, BusinessService],
+  providers: [
+    ServiceService,
+    JwtService,
+    UploadService,
+    UserService,
+    OtpService,
+    UserService,
+    OtpService,
+    EmailService,
+    UploadService,
+    ConfigService,
+    UserService,
+  ],
   exports: [ServiceService, MongooseModule],
 })
 export class ServiceModule {}

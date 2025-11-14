@@ -14,6 +14,8 @@ import { ServiceModule } from '../service/service.module';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { UploadService } from '../upload/upload.service';
 import { BusinessModule } from '../business/business.module';
+import { EmailService } from '@/common/services/email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -35,6 +37,9 @@ import { BusinessModule } from '../business/business.module';
     ServiceService,
     OtpService,
     UploadService,
+    EmailService,
+    UploadService,
+    ConfigService,
   ],
 })
 export class BookingModule {}

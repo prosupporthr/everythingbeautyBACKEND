@@ -33,13 +33,6 @@ import { HttpModule, HttpService } from '@nestjs/axios';
     UploadService,
     ConfigService,
   ],
-  exports: [
-    UserService,
-    OtpService,
-    EmailService,
-    UploadService,
-    ConfigService,
-    MongooseModule,
-  ],
+  exports: [MongooseModule, UserService],
 })
 export class UserModule {}
