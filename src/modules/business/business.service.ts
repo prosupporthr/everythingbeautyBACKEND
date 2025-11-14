@@ -17,6 +17,7 @@ import { UploadService } from '../upload/upload.service';
 import { Types } from 'mongoose';
 import { User } from '@/schemas/User.schema';
 import { Service } from '@/schemas/Service.Schema';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class BusinessService {
@@ -27,6 +28,7 @@ export class BusinessService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Service.name) private readonly serviceModel: Model<Service>,
     private readonly uploadService: UploadService,
+    private userService: UserService,
   ) {}
 
   async createBusiness(dto: CreateBusinessDto): Promise<ReturnType> {
@@ -212,10 +214,12 @@ export class BusinessService {
     const services = await this.serviceModel.find({
       businessId: business.toJSON()._id,
     });
+
+    const user = await this.userService.enrichUser(creator as any);
     return {
       ...business.toObject(),
       pictures,
-      creator,
+      creator: user,
       services,
     };
   }
