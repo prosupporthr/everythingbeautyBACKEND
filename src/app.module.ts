@@ -15,6 +15,8 @@ import { BookingModule } from './modules/booking/booking.module';
 import { OrderModule } from './modules/order/order.module';
 import { ReviewModule } from './modules/review/review.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
+import { MessagingGateway } from './commom/gateway/messaging/messaging.gateway';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -82,8 +84,9 @@ const logger = new Logger('AppModule');
       maxRedirects: 5,
     }),
     BookmarksModule,
+    MessagingModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, MessagingGateway],
 })
 export class AppModule {}

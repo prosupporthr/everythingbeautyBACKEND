@@ -1,8 +1,5 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Prop } from '@nestjs/mongoose';
 
-@Schema({
-  timestamps: true,
-})
 export class MetaSchema {
   @Prop({
     type: Boolean,
