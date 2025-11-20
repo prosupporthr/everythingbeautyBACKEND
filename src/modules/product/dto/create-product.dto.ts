@@ -59,4 +59,14 @@ export class CreateProductDto {
   @IsArray()
   @IsString({ each: true })
   pictures?: string[];
+
+  @ApiProperty({
+    description: 'Pictures',
+    example: ['images/product1.png'],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  colors?: string[];
 }
