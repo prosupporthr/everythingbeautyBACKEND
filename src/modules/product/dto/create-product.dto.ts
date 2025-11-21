@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ColorType } from '@/schemas/Product.schema';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -62,11 +63,11 @@ export class CreateProductDto {
 
   @ApiProperty({
     description: 'Pictures',
-    example: ['images/product1.png'],
+    example: [{ label: '', color: '' }],
     required: false,
   })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  colors?: string[];
+  @Type(() => Array<ColorType>)
+  colors?: ColorType[];
 }

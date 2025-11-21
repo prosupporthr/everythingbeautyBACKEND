@@ -2,6 +2,11 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Service } from './Service.Schema';
 
+export class ColorType {
+  value: string;
+  label: string;
+}
+
 @Schema({
   timestamps: true,
 })
@@ -29,9 +34,9 @@ export class Product extends Service {
 
   @Prop({
     required: false,
-    type: [String],
+    type: [ColorType],
   })
-  colors: string[];
+  colors: ColorType[] = [];
 }
 
 export type ProductDocument = HydratedDocument<Product>;
