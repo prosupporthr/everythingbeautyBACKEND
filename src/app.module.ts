@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { Logger, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -16,7 +17,7 @@ import { OrderModule } from './modules/order/order.module';
 import { ReviewModule } from './modules/review/review.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
-import { MessagingGateway } from './commom/gateway/messaging/messaging.gateway';
+import { ChatGateway } from './common/gateway/chat/chat.gateway';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -44,7 +45,7 @@ const logger = new Logger('AppModule');
     }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         uri:
           configService.get<string>('DATABASE_URL') ||
           'mongodb://localhost:27017',
@@ -87,6 +88,6 @@ const logger = new Logger('AppModule');
     MessagingModule,
   ],
   controllers: [AppController],
-  providers: [AppService, MessagingGateway],
+  providers: [AppService, ChatGateway],
 })
 export class AppModule {}
