@@ -6,6 +6,7 @@ import { Chat, ChatSchema } from '@/schemas/Chat.schema';
 import { ChatMessage, ChatMessageSchema } from '@/schemas/ChatMessage.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
+import { UploadService } from '../upload/upload.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { JwtService } from '@nestjs/jwt';
     ]),
   ],
   controllers: [MessagingController],
-  providers: [MessagingService, JwtService],
+  providers: [MessagingService, JwtService, UploadService],
   exports: [MessagingService],
 })
 export class MessagingModule {}

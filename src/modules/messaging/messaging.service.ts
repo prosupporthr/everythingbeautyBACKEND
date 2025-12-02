@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -14,13 +15,19 @@ import {
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
+import { User, UserDocument } from '@/schemas/User.schema';
+import { UploadService } from '@modules/upload/upload.service';
+import { CreateChatDto } from './dto/create-chat.dto';
 
 @Injectable()
 export class MessagingService {
+  private logger = new Logger(MessagingService.name);
   constructor(
     @InjectModel(Chat.name) private readonly chatModel: Model<ChatDocument>,
     @InjectModel(ChatMessage.name)
     private readonly chatMessageModel: Model<ChatMessageDocument>,
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly uploadService: UploadService,
   ) {}
 
   private getErrorMessage(error: unknown): string {
@@ -35,33 +42,19 @@ export class MessagingService {
   }
 
   // 1. Create chat; avoid duplicates (same users, either direction, same business)
-  async createChat(params: {
-    senderId: string;
-    recipientId: string;
-    businessId: string;
-    creatorId: string;
-  }): Promise<ReturnType> {
+  async createChat(dto: CreateChatDto): Promise<ReturnType> {
     try {
-      const { senderId, recipientId, businessId, creatorId } = params;
+      const { senderId, recipientId } = dto;
 
-      if (
-        !isValidObjectId(senderId) ||
-        !isValidObjectId(recipientId) ||
-        !isValidObjectId(businessId) ||
-        !isValidObjectId(creatorId)
-      ) {
+      if (!isValidObjectId(senderId) || !isValidObjectId(recipientId)) {
         throw new BadRequestException('Invalid ObjectId provided');
       }
 
       const senderObjId = new Types.ObjectId(senderId);
       const recipientObjId = new Types.ObjectId(recipientId);
-      const businessObjId = new Types.ObjectId(businessId);
-      const creatorObjId = new Types.ObjectId(creatorId);
-
       const existing = await this.chatModel
         .findOne({
           isDeleted: false,
-          businessId: businessObjId,
           $or: [
             { senderId: senderObjId, recipientId: recipientObjId },
             { senderId: recipientObjId, recipientId: senderObjId },
@@ -80,14 +73,13 @@ export class MessagingService {
       const chat = await this.chatModel.create({
         senderId: senderObjId,
         recipientId: recipientObjId,
-        businessId: businessObjId,
-        creatorId: creatorObjId,
       });
 
+      const enriched = await this.enrichChat(chat);
       return new ReturnType({
         success: true,
         message: 'Chat created successfully',
-        data: chat.toObject(),
+        data: enriched,
       });
     } catch (error) {
       if (
@@ -158,15 +150,16 @@ export class MessagingService {
         ],
       };
 
-      const [data, total] = await Promise.all([
+      const [chats, total] = await Promise.all([
         this.chatModel
           .find(filter)
           .sort({ createdAt: -1 })
           .skip(skip)
-          .limit(limit)
-          .lean(),
+          .limit(limit),
         this.chatModel.countDocuments(filter),
       ]);
+
+      const data = await Promise.all(chats.map((c) => this.enrichChat(c)));
 
       return new PaginatedReturnType<ChatDocument[]>({
         success: true,
@@ -267,6 +260,37 @@ export class MessagingService {
       )
         throw error;
       throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  // Helper: enrich a chat with sender and recipient details and signed profile pictures
+  private async enrichChat(chat: ChatDocument) {
+    try {
+      const chatObj = chat.toObject ? chat.toObject() : chat;
+      const [sender, recipient] = await Promise.all([
+        this.userModel.findById(chatObj.senderId),
+        this.userModel.findById(chatObj.recipientId),
+      ]);
+
+      const senderPic = sender?.profilePicture
+        ? await this.uploadService.getSignedUrl(sender.profilePicture)
+        : null;
+      const recipientPic = recipient?.profilePicture
+        ? await this.uploadService.getSignedUrl(recipient.profilePicture)
+        : null;
+
+      return {
+        ...chatObj,
+        sender: sender
+          ? { ...sender.toObject(), profilePicture: senderPic }
+          : null,
+        recipient: recipient
+          ? { ...recipient.toObject(), profilePicture: recipientPic }
+          : null,
+      };
+    } catch (error: any) {
+      this.logger.error(error);
+      return chat.toObject ? chat.toObject() : chat;
     }
   }
 }

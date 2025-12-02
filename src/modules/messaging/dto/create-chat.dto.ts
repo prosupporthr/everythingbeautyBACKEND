@@ -15,18 +15,4 @@ export class CreateChatDto {
   })
   @IsMongoId()
   recipientId: string;
-
-  @ApiProperty({
-    description: 'Business ID context for the chat',
-    example: '64f7c2d91c2f4a00abcdef12',
-  })
-  @IsMongoId()
-  businessId: string;
-
-  @ApiProperty({
-    description: 'Creator user ID who initiated the chat',
-    example: '64f7c2d91c2f4a0011112222',
-  })
-  @IsMongoId()
-  creatorId: string;
 }
