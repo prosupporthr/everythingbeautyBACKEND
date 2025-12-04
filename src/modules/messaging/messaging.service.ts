@@ -115,10 +115,11 @@ export class MessagingService {
         type,
         message,
       });
+      const enriched = await this.enrichChatMessage(created);
       return new ReturnType({
         success: true,
         message: 'Message created successfully',
-        data: created.toObject(),
+        data: enriched,
       });
     } catch (error) {
       if (
@@ -153,7 +154,7 @@ export class MessagingService {
       const [chats, total] = await Promise.all([
         this.chatModel
           .find(filter)
-          .sort({ createdAt: -1 })
+          .sort({ updatedAt: -1 })
           .skip(skip)
           .limit(limit),
         this.chatModel.countDocuments(filter),
@@ -188,7 +189,7 @@ export class MessagingService {
 
       const filter = { isDeleted: false, chatId: new Types.ObjectId(chatId) };
 
-      const [data, total] = await Promise.all([
+      const [rawMessages, total] = await Promise.all([
         this.chatMessageModel
           .find(filter)
           .sort({ createdAt: -1 })
@@ -197,6 +198,10 @@ export class MessagingService {
           .lean(),
         this.chatMessageModel.countDocuments(filter),
       ]);
+
+      const data = await Promise.all(
+        rawMessages.map((m) => this.enrichChatMessage(m)),
+      );
 
       return new PaginatedReturnType<ChatMessageDocument[]>({
         success: true,
@@ -291,6 +296,31 @@ export class MessagingService {
     } catch (error: any) {
       this.logger.error(error);
       return chat.toObject ? chat.toObject() : chat;
+    }
+  }
+
+  // Helper: enrich a chat message with sender details and signed profile picture
+  private async enrichChatMessage(message: ChatMessageDocument) {
+    try {
+      const msgObj = message.toObject ? message.toObject() : message;
+      const sender = await this.userModel.findById(msgObj.senderId);
+      const senderPic = sender?.profilePicture
+        ? await this.uploadService.getSignedUrl(sender.profilePicture)
+        : null;
+      const files = await Promise.all(
+        msgObj.files.map(async (f) => await this.uploadService.getSignedUrl(f)),
+      );
+
+      return {
+        ...msgObj,
+        sender: sender
+          ? { ...sender.toObject(), profilePicture: senderPic }
+          : null,
+        files,
+      };
+    } catch (error: any) {
+      this.logger.error(error);
+      return message.toObject ? message.toObject() : message;
     }
   }
 }

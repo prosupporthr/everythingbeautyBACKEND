@@ -3,8 +3,8 @@ import { MetaSchema } from './meta.schema';
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 
 export enum MESSAGE_TYPE {
-  TEXT = 'text',
-  FILE = 'file',
+  TEXT = 'text_only',
+  FILE = 'with_file',
 }
 
 @Schema({
@@ -37,6 +37,12 @@ export class ChatMessage extends MetaSchema {
     enum: MESSAGE_TYPE,
   })
   type: MESSAGE_TYPE;
+
+  @Prop({
+    required: false,
+    type: [String],
+  })
+  files: string[];
 }
 
 export type ChatMessageDocument = HydratedDocument<ChatMessage>;
