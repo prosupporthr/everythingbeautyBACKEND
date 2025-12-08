@@ -18,6 +18,7 @@ import { ReviewModule } from './modules/review/review.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { ChatGateway } from './common/gateway/chat/chat.gateway';
+import { TransactionsModule } from './modules/transactions/transactions.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -86,6 +87,7 @@ const logger = new Logger('AppModule');
     }),
     BookmarksModule,
     MessagingModule,
+    TransactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway],

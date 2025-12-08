@@ -18,6 +18,7 @@ import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { User, UserDocument } from '@/schemas/User.schema';
 import { UploadService } from '@modules/upload/upload.service';
 import { CreateChatDto } from './dto/create-chat.dto';
+import { ChatGateway } from '@/common/gateway/chat/chat.gateway';
 
 @Injectable()
 export class MessagingService {
@@ -28,6 +29,7 @@ export class MessagingService {
     private readonly chatMessageModel: Model<ChatMessageDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly uploadService: UploadService,
+    private chatGatewayService: ChatGateway,
   ) {}
 
   private getErrorMessage(error: unknown): string {
@@ -116,6 +118,7 @@ export class MessagingService {
         message,
       });
       const enriched = await this.enrichChatMessage(created);
+      this.chatGatewayService.socket.emit(`chat:${chatId}`, enriched);
       return new ReturnType({
         success: true,
         message: 'Message created successfully',
