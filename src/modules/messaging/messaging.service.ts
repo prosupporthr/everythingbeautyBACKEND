@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   BadRequestException,
   Injectable,
@@ -111,9 +112,40 @@ export class MessagingService {
         .lean();
       if (!chat) throw new NotFoundException('Chat not found');
 
+      const chatObjId = new Types.ObjectId(chatId);
+      const senderObjId = new Types.ObjectId(senderId);
+
+      const lastMessage = await this.chatMessageModel
+        .findOne({
+          chatId: chatObjId,
+          senderId: senderObjId,
+          isDeleted: false,
+        })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (lastMessage) {
+        const samePayload =
+          lastMessage.type === type && lastMessage.message === message;
+        const withinWindow =
+          Math.abs(
+            Date.now() - new Date(lastMessage.createdAt as any).getTime(),
+          ) < 10000;
+        if (samePayload && withinWindow) {
+          const enrichedExisting = await this.enrichChatMessage(
+            lastMessage as any,
+          );
+          return new ReturnType({
+            success: true,
+            message: 'Message already exists',
+            data: enrichedExisting,
+          });
+        }
+      }
+
       const created = await this.chatMessageModel.create({
-        chatId: new Types.ObjectId(chatId),
-        senderId: new Types.ObjectId(senderId),
+        chatId: chatObjId,
+        senderId: senderObjId,
         type,
         message,
       });
@@ -309,8 +341,9 @@ export class MessagingService {
       const senderPic = sender?.profilePicture
         ? await this.uploadService.getSignedUrl(sender.profilePicture)
         : null;
+      const filesSrc = Array.isArray(msgObj.files) ? msgObj.files : [];
       const files = await Promise.all(
-        msgObj.files.map(async (f) => await this.uploadService.getSignedUrl(f)),
+        filesSrc.map(async (f) => await this.uploadService.getSignedUrl(f)),
       );
 
       return {
