@@ -1,5 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ReviewService } from './review.service';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
@@ -24,7 +41,11 @@ export class ReviewController {
 
   @Get('business/:businessId')
   @ApiOperation({ summary: 'Get paginated list of reviews for a business' })
-  @ApiParam({ name: 'businessId', description: 'Business ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiOkResponse({ description: 'Business reviews fetched (paginated)' })
@@ -37,7 +58,11 @@ export class ReviewController {
 
   @Get('user/:userId')
   @ApiOperation({ summary: 'Get paginated list of user reviews' })
-  @ApiParam({ name: 'userId', description: 'User ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiOkResponse({ description: 'User reviews fetched (paginated)' })
@@ -50,9 +75,27 @@ export class ReviewController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft delete a review' })
-  @ApiParam({ name: 'id', description: 'Review ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiParam({
+    name: 'id',
+    description: 'Review ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @ApiOkResponse({ description: 'Review deleted' })
   async softDeleteReview(@Param('id') id: string): Promise<ReturnType> {
     return this.reviewService.softDeleteReview(id);
+  }
+
+  @Get('pending/:userId')
+  @ApiOperation({ summary: 'Get businesses that need reviews for a user' })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({ description: 'Pending reviews fetched' })
+  async getPendingReviews(
+    @Param('userId') userId: string,
+  ): Promise<ReturnType> {
+    return this.reviewService.getPendingReviewTargets(userId);
   }
 }
