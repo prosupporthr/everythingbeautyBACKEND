@@ -118,7 +118,6 @@ export class MessagingService {
         message,
       });
       const enriched = await this.enrichChatMessage(created);
-      this.chatGatewayService.socket.emit(`chat:${chatId}`, enriched);
       return new ReturnType({
         success: true,
         message: 'Message created successfully',

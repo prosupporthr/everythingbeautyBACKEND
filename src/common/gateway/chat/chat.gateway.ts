@@ -54,6 +54,7 @@ export class ChatGateway {
         message: payload.message,
       });
       this.logger.debug('CHAT SENT:', data);
+      this.socket.emit(`chat:${payload.chatId}`, data.data);
     } catch (error) {
       this.logger.error(error);
       this.logger.error('FROM GATEWAY CLASS');
