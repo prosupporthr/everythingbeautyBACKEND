@@ -24,7 +24,7 @@ import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
-import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
+import { AuthGuard } from '@/common/guards/auth/auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('business')
@@ -33,7 +33,7 @@ export class BusinessController {
   constructor(private readonly businessService: BusinessService) {}
 
   @Post()
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a business' })
   @ApiCreatedResponse({ description: 'Business created successfully' })
   async createBusiness(@Body() dto: CreateBusinessDto): Promise<ReturnType> {
@@ -41,7 +41,7 @@ export class BusinessController {
   }
 
   @Patch(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Edit a business' })
   @ApiParam({
     name: 'id',
@@ -57,7 +57,7 @@ export class BusinessController {
   }
 
   @Delete(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Soft delete a business' })
   @ApiParam({
     name: 'id',
@@ -70,6 +70,7 @@ export class BusinessController {
   }
 
   @Get('filter')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get filtered businesses (paginated)' })
   @ApiOkResponse({ description: 'Filtered businesses fetched' })
   async getFilteredBusinesses(
@@ -79,6 +80,7 @@ export class BusinessController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get business by ID' })
   @ApiParam({
     name: 'id',
@@ -106,6 +108,7 @@ export class BusinessController {
   }
 
   @Get()
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get all businesses (paginated)' })
   @ApiOkResponse({ description: 'Businesses fetched' })
   async getAllBusinesses(

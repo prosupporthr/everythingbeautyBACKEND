@@ -18,6 +18,7 @@ import {
   AUTH_TYPE_KEY,
   UserType,
 } from '@/common/decorators/auth-type/auth-type.decorator';
+import { IS_PUBLIC_KEY } from '@/common/decorators/public/public.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -32,6 +33,14 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
 
@@ -49,7 +58,8 @@ export class AuthGuard implements CanActivate {
       });
 
       // Determine user type from header, default to USER
-      const headerUserType = request.headers['user-type'] as string;
+      const headerUserType =
+        (request.headers['user-type'] as string) ?? UserType.USER; // remove this when this has been fully implemented on the frontend
       const userType =
         headerUserType === 'ADMIN' ? UserType.ADMIN : UserType.USER;
 

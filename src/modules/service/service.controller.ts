@@ -23,7 +23,11 @@ import { EditServiceDto } from './dto/edit-service.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
-import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
+import { AuthGuard } from '@/common/guards/auth/auth.guard';
+import {
+  AuthType,
+  UserType,
+} from '@/common/decorators/auth-type/auth-type.decorator';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Service')
@@ -32,7 +36,7 @@ export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
 
   @Post()
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a service' })
   @ApiBody({ type: CreateServiceDto })
   @ApiOkResponse({ description: 'Service created' })
@@ -41,6 +45,8 @@ export class ServiceController {
   }
 
   @Get('all')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.USER)
   @ApiOperation({ summary: 'Get all services for a business (paginated)' })
   @ApiParam({
     name: 'businessId',
@@ -55,6 +61,7 @@ export class ServiceController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get service by ID' })
   @ApiParam({
     name: 'id',
@@ -67,7 +74,7 @@ export class ServiceController {
   }
 
   @Patch(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Edit a service' })
   @ApiParam({
     name: 'id',
@@ -84,7 +91,7 @@ export class ServiceController {
   }
 
   @Delete(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Soft delete a service' })
   @ApiParam({
     name: 'id',
@@ -97,6 +104,7 @@ export class ServiceController {
   }
 
   @Get('business/:businessId')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get all services for a business (paginated)' })
   @ApiParam({
     name: 'businessId',

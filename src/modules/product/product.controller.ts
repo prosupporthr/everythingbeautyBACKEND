@@ -24,7 +24,7 @@ import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
-import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
+import { AuthGuard } from '@/common/guards/auth/auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Product')
@@ -33,7 +33,7 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a product' })
   @ApiBody({ type: CreateProductDto })
   @ApiOkResponse({ description: 'Product created' })
@@ -42,6 +42,7 @@ export class ProductController {
   }
 
   @Get('filter')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get filtered products (paginated)' })
   @ApiOkResponse({ description: 'Filtered products fetched' })
   async getFilteredProducts(
@@ -51,6 +52,7 @@ export class ProductController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({
     name: 'id',
@@ -63,7 +65,7 @@ export class ProductController {
   }
 
   @Patch(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Edit a product' })
   @ApiParam({
     name: 'id',
@@ -80,7 +82,7 @@ export class ProductController {
   }
 
   @Delete(':id')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Soft delete a product' })
   @ApiParam({
     name: 'id',
@@ -93,6 +95,7 @@ export class ProductController {
   }
 
   @Get('business/:businessId')
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get all products for a business (paginated)' })
   @ApiParam({
     name: 'businessId',

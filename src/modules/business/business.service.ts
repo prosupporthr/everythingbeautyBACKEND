@@ -201,7 +201,7 @@ export class BusinessService {
         total,
       });
     } catch (error) {
-      this.logger.error('Error fetching filtered businesses');
+      this.logger.error('Error fetching filtered businesses', error);
       throw new BadRequestException('Error fetching filtered businesses');
     }
   }
