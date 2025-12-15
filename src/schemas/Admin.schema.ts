@@ -5,17 +5,14 @@ import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 export enum ADMIN_ROLE {
   SUPER_ADMIN = 'SUPER_ADMIN',
   ADMIN = 'ADMIN',
-  GROWTH_MANAGER = 'GROWTH_MANAGER',
-  PRODUCT_MANAGER = 'PRODUCT_MANAGER',
-  COMMUNITY_SUPPORT = 'COMMUNITY_SUPPORT',
 }
 
 export enum ACCESS {
   DASHBOARD = 'DASHBOARD',
   USERS = 'USERS',
-  CHALLENGES = 'CHALLENGES',
   TRANSACTIONS = 'TRANSACTIONS',
-  COMMUNITY = 'COMMUNITY',
+  BUSINESS = 'BUSINESS',
+  PRODUCT = 'PRODUCT',
 }
 
 export type AdminDocument = HydratedDocument<Admin>;
@@ -31,9 +28,6 @@ export class Admin extends MetaSchema {
 
   @Prop({ type: String })
   email: string;
-
-  @Prop({ type: String })
-  password: string;
 
   @Prop({ type: String })
   profilePicture: string;

@@ -18,6 +18,8 @@ import { ReviewModule } from './modules/review/review.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { TransactionsModule } from './modules/transactions/transactions.module';
+import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -87,6 +89,8 @@ const logger = new Logger('AppModule');
     BookmarksModule,
     MessagingModule,
     TransactionsModule,
+    AdminAuthModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
