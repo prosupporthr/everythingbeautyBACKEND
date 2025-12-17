@@ -33,8 +33,6 @@ import {
   UserType,
 } from '@/common/decorators/auth-type/auth-type.decorator';
 
-@ApiBearerAuth('JWT-auth')
-@UseGuards(AuthGuard)
 @AuthType(UserType.ADMIN)
 @ApiTags('Admin Auth')
 @Controller('admin-auth')
@@ -66,6 +64,9 @@ export class AdminAuthController {
   }
 
   @Get()
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.ADMIN)
   @ApiOperation({ summary: 'Get all admins (paginated)' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -77,6 +78,8 @@ export class AdminAuthController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.ADMIN)
   @ApiOperation({ summary: 'Get admin by id' })
   @ApiParam({ name: 'id', description: 'Admin ID' })
   @ApiOkResponse({ description: 'Admin fetched' })
@@ -85,6 +88,8 @@ export class AdminAuthController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.ADMIN)
   @ApiOperation({ summary: 'Update an admin' })
   @ApiParam({ name: 'id', description: 'Admin ID' })
   @ApiBody({ type: UpdateAdminDto })
@@ -97,6 +102,8 @@ export class AdminAuthController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.ADMIN)
   @ApiOperation({ summary: 'Soft delete an admin' })
   @ApiParam({ name: 'id', description: 'Admin ID' })
   @ApiOkResponse({ description: 'Admin deleted' })
@@ -105,6 +112,8 @@ export class AdminAuthController {
   }
 
   @Patch(':id/suspend')
+  @UseGuards(AuthGuard)
+  @AuthType(UserType.ADMIN)
   @ApiOperation({ summary: 'Suspend or unsuspend an admin account' })
   @ApiParam({ name: 'id', description: 'Admin ID' })
   @ApiBody({ type: SuspendAdminDto })

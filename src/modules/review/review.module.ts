@@ -8,6 +8,7 @@ import { Order, OrderSchema } from '@/schemas/Order.schema';
 import { Booking, BookingSchema } from '@/schemas/Booking.schema';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
+import { UploadService } from '../upload/upload.service';
 
 @Module({
   imports: [
@@ -20,6 +21,6 @@ import { User, UserSchema } from '@/schemas/User.schema';
     ]),
   ],
   controllers: [ReviewController],
-  providers: [ReviewService, JwtService],
+  providers: [ReviewService, JwtService, UploadService],
 })
 export class ReviewModule {}

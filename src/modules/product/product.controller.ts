@@ -42,7 +42,7 @@ export class ProductController {
   }
 
   @Get('filter')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get filtered products (paginated)' })
   @ApiOkResponse({ description: 'Filtered products fetched' })
   async getFilteredProducts(
@@ -52,7 +52,7 @@ export class ProductController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({
     name: 'id',
@@ -95,7 +95,7 @@ export class ProductController {
   }
 
   @Get('business/:businessId')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get all products for a business (paginated)' })
   @ApiParam({
     name: 'businessId',

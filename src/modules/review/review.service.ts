@@ -17,6 +17,7 @@ import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class ReviewService {
@@ -32,6 +33,7 @@ export class ReviewService {
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private uploadService: UploadService,
   ) {}
 
   async createReview(dto: CreateReviewDto): Promise<ReturnType> {
@@ -333,6 +335,13 @@ export class ReviewService {
           .lean(),
       ]);
 
+      const businessPictures = await Promise.all(
+        business?.pictures.map(async (p) => {
+          const url = await this.uploadService.getSignedUrl(p);
+          return url as string;
+        }) as any,
+      );
+
       return {
         ...obj,
         user: user
@@ -341,7 +350,9 @@ export class ReviewService {
               firstName: user.firstName,
               lastName: user.lastName,
               email: user.email,
-              profilePicture: user.profilePicture,
+              profilePicture: await this.uploadService.getSignedUrl(
+                user.profilePicture,
+              ),
               plan: user.plan,
               isSuspended: user.isSuspended,
             }
@@ -351,7 +362,7 @@ export class ReviewService {
               _id: business._id,
               name: business.name,
               location: business.location,
-              pictures: business.pictures,
+              pictures: businessPictures || [],
               rating: business.rating,
               approved: business.approved,
               enabled: business.enabled,

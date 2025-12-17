@@ -61,7 +61,7 @@ export class ServiceController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get service by ID' })
   @ApiParam({
     name: 'id',
@@ -104,7 +104,7 @@ export class ServiceController {
   }
 
   @Get('business/:businessId')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get all services for a business (paginated)' })
   @ApiParam({
     name: 'businessId',

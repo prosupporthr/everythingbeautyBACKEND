@@ -17,11 +17,7 @@ export enum ACCESS {
 
 export type AdminDocument = HydratedDocument<Admin>;
 
-@Schema({
-  autoCreate: true,
-  autoIndex: true,
-  autoSearchIndex: true,
-})
+@Schema({})
 export class Admin extends MetaSchema {
   @Prop({ type: String })
   fullname: string;

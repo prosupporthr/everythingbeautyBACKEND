@@ -70,7 +70,7 @@ export class BusinessController {
   }
 
   @Get('filter')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get filtered businesses (paginated)' })
   @ApiOkResponse({ description: 'Filtered businesses fetched' })
   async getFilteredBusinesses(
@@ -80,7 +80,7 @@ export class BusinessController {
   }
 
   @Get(':id')
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Get business by ID' })
   @ApiParam({
     name: 'id',

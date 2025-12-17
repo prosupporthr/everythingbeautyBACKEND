@@ -85,7 +85,7 @@ export class BusinessService {
     return new ReturnType({
       success: true,
       message: 'Business soft-deleted successfully',
-      data: deleted,
+      data: null,
     });
   }
 
