@@ -76,7 +76,7 @@ export class AdminAuthService {
       if (!admin) throw new NotFoundException('Admin not found');
       const token = await this.jwtService.signAsync(
         {
-          id: String(admin._id),
+          id: admin._id,
           email: admin.email,
           role: admin.role,
         },

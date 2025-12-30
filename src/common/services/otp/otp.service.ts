@@ -114,11 +114,6 @@ export class OtpService {
         throw new BadRequestException('Invalid OTP code');
       }
 
-      // Check if OTP has expired (15 minutes)
-      const otpCreatedTime = new Date(otp.createdAt).getTime();
-      const currentTime = new Date().getTime();
-      const timeDiff = (currentTime - otpCreatedTime) / (1000 * 60); // Convert to minutes
-
       // if (timeDiff > 100 || otp.isExpired) {
       //     await this.otpModel.updateOne({
       //         _id: otp._id,
