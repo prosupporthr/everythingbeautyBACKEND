@@ -69,6 +69,7 @@ export class AdminAuthService {
     try {
       const result = await this.otpService.verifyOtp({ code });
       const otpRecord = result?.data?.otp;
+      this.logger.debug(result);
       const adminId: string | null = otpRecord?.adminId ?? null;
       if (!adminId)
         throw new BadRequestException('Invalid OTP or admin not found');

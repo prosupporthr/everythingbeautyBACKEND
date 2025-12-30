@@ -22,13 +22,6 @@ export class Otp extends MetaSchema {
     type: String,
     required: false,
     trim: true,
-    set: function (this: Otp) {
-      if (this.type === OTP_TYPE.ADMIN && !this.adminId) {
-        throw new Error('Admin ID is required');
-      } else {
-        return this.adminId;
-      }
-    },
   })
   adminId: string;
 

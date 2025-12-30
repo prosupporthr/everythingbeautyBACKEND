@@ -110,6 +110,8 @@ export class OtpService {
         })
         .sort({ createdAt: -1 });
 
+      this.logger.debug('OTP CODE', otp);
+
       if (!otp || otp.expired) {
         throw new BadRequestException('Invalid OTP code');
       }
