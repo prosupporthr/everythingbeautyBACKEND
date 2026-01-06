@@ -12,11 +12,11 @@ import { Business } from '@/schemas/Business.schema';
 import { BusinessSchema } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
 import { BusinessModule } from '../business/business.module';
-import { BusinessService } from '../business/business.service';
 import { UserService } from '../user/user.service';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { EmailService } from '@/common/services/email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { BookmarkSchema, Bookmark } from '@/schemas/Bookmark.schema';
 
 @Module({
   imports: [
@@ -24,6 +24,7 @@ import { ConfigService } from '@nestjs/config';
       { name: ServiceEntity.name, schema: ServiceSchema },
       { name: User.name, schema: UserSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: Bookmark.name, schema: BookmarkSchema },
     ]),
     BusinessModule,
   ],

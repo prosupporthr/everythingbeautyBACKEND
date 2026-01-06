@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Body,
   Controller,
@@ -7,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -25,6 +27,9 @@ import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
 import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { AuthGuard } from '@/common/guards/auth/auth.guard';
+import { UserAuthCheckGuard } from '@/common/guards/user-auth-check/user-auth-check.guard';
+import express from 'express';
+import { UserDocument } from '@/schemas/User.schema';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Product')
@@ -42,17 +47,22 @@ export class ProductController {
   }
 
   @Get('filter')
-  // @UseGuards(AuthGuard)
+  @UseGuards(UserAuthCheckGuard)
   @ApiOperation({ summary: 'Get filtered products (paginated)' })
   @ApiOkResponse({ description: 'Filtered products fetched' })
   async getFilteredProducts(
     @Query() query: ProductFilterQueryDto,
+    @Req() req: express.Request,
   ): Promise<PaginatedReturnType> {
+    const user = req['user'] as UserDocument;
+    if (user) {
+      return this.productService.getFilteredProducts(query, user);
+    }
     return this.productService.getFilteredProducts(query);
   }
 
   @Get(':id')
-  // @UseGuards(AuthGuard)
+  @UseGuards(UserAuthCheckGuard)
   @ApiOperation({ summary: 'Get product by ID' })
   @ApiParam({
     name: 'id',
@@ -60,7 +70,15 @@ export class ProductController {
     example: '64f7c2d91c2f4a0012345678',
   })
   @ApiOkResponse({ description: 'Product fetched' })
-  async getProductById(@Param('id') id: string): Promise<ReturnType> {
+  async getProductById(
+    @Param('id') id: string,
+    @Req() req: express.Request,
+  ): Promise<ReturnType> {
+    const user = req['user'];
+
+    if (user) {
+      return this.productService.getProductById(id, user as UserDocument);
+    }
     return this.productService.getProductById(id);
   }
 
@@ -95,7 +113,7 @@ export class ProductController {
   }
 
   @Get('business/:businessId')
-  // @UseGuards(AuthGuard)
+  @UseGuards(UserAuthCheckGuard)
   @ApiOperation({ summary: 'Get all products for a business (paginated)' })
   @ApiParam({
     name: 'businessId',
@@ -106,7 +124,12 @@ export class ProductController {
   async getBusinessProducts(
     @Param('businessId') businessId: string,
     @Query() query: PaginationQueryDto,
+    @Req() req: express.Request,
   ): Promise<PaginatedReturnType> {
+    const user = req['user'] as UserDocument;
+    if (user) {
+      return this.productService.getBusinessProducts(businessId, query, user);
+    }
     return this.productService.getBusinessProducts(businessId, query);
   }
 }

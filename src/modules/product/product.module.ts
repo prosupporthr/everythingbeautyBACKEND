@@ -13,6 +13,7 @@ import { EmailService } from '@/common/services/email/email.service';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { ConfigService } from 'aws-sdk';
 import { UserService } from '../user/user.service';
+import { Bookmark, BookmarkSchema } from '@/schemas/Bookmark.schema';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { UserService } from '../user/user.service';
       { name: Product.name, schema: ProductSchema },
       { name: User.name, schema: UserSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: Bookmark.name, schema: BookmarkSchema },
     ]),
     BusinessModule,
   ],

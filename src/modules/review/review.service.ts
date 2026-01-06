@@ -153,24 +153,30 @@ export class ReviewService {
       for (const biz of businesses)
         businessMap.set(String(biz._id), biz as BusinessDocument);
 
-      const result = Array.from(groups.values()).map((g) => {
-        const biz = businessMap.get(String(g.businessId));
-        return {
-          business: biz
-            ? {
-                _id: biz._id,
-                name: biz.name,
-                location: biz.location,
-                pictures: biz.pictures,
-                rating: biz.rating,
-                approved: biz.approved,
-                enabled: biz.enabled,
-              }
-            : { _id: g.businessId },
-          orders: g.orders,
-          bookings: g.bookings,
-        };
-      });
+      const result = await Promise.all(
+        Array.from(groups.values()).map(async (g) => {
+          const biz = businessMap.get(String(g.businessId));
+          const pictures =
+            biz && biz.pictures
+              ? await this.uploadService.getSignedUrl(biz.pictures)
+              : null;
+          return {
+            business: biz
+              ? {
+                  _id: biz._id,
+                  name: biz.name,
+                  location: biz.location,
+                  pictures,
+                  rating: biz.rating,
+                  approved: biz.approved,
+                  enabled: biz.enabled,
+                }
+              : { _id: g.businessId },
+            orders: g.orders,
+            bookings: g.bookings,
+          };
+        }),
+      );
 
       return new ReturnType({
         success: true,

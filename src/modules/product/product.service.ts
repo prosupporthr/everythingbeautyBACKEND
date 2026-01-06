@@ -11,9 +11,13 @@ import { ProductFilterQueryDto } from './dto/product-filter-query.dto';
 import { Business } from '@/schemas/Business.schema';
 import { BusinessDocument } from '@/schemas/Business.schema';
 import { UploadService } from '../upload/upload.service';
-import { User, UserDocument } from '@/schemas/User.schema';
-import { UserService } from '../user/user.service';
+import { UserDocument } from '@/schemas/User.schema';
 import { BusinessService } from '../business/business.service';
+import {
+  Bookmark,
+  BookmarkDocument,
+  BOOKMARK_TYPE,
+} from '@/schemas/Bookmark.schema';
 
 @Injectable()
 export class ProductService {
@@ -23,6 +27,8 @@ export class ProductService {
     private readonly productModel: Model<ProductDocument>,
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
+    @InjectModel(Bookmark.name)
+    private readonly bookmarkModel: Model<BookmarkDocument>,
     private uploadService: UploadService,
     private businessService: BusinessService,
   ) {}
@@ -37,13 +43,13 @@ export class ProductService {
     });
   }
 
-  async getProductById(id: string): Promise<ReturnType> {
+  async getProductById(id: string, user?: UserDocument): Promise<ReturnType> {
     const product = await this.productModel.findOne({
       _id: id,
       isDeleted: false,
     });
     if (!product) throw new NotFoundException('Product not found');
-    const enrichedProduct = await this.enrichProduct(product);
+    const enrichedProduct = await this.enrichProduct(product, user);
     return new ReturnType({
       success: true,
       message: 'Product fetched',
@@ -87,6 +93,7 @@ export class ProductService {
   async getBusinessProducts(
     businessId: string,
     { page = 1, limit = 10 }: PaginationQueryDto,
+    user?: UserDocument,
   ): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
     const [data, total] = await Promise.all([
@@ -104,7 +111,7 @@ export class ProductService {
     ]);
 
     const enrichedProducts = await Promise.all(
-      data.map(async (product) => this.enrichProduct(product)),
+      data.map(async (product) => this.enrichProduct(product, user)),
     );
 
     return new PaginatedReturnType<ProductDocument[]>({
@@ -116,16 +123,19 @@ export class ProductService {
     });
   }
 
-  async getFilteredProducts({
-    page = 1,
-    limit = 10,
-    q,
-    // businessId,
-    // allowReview,
-    // minPrice,
-    // maxPrice,
-    // color,
-  }: ProductFilterQueryDto): Promise<PaginatedReturnType<ProductDocument[]>> {
+  async getFilteredProducts(
+    {
+      page = 1,
+      limit = 10,
+      q,
+      // businessId,
+      // allowReview,
+      // minPrice,
+      // maxPrice,
+      // color,
+    }: ProductFilterQueryDto,
+    user?: UserDocument,
+  ): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
     const filter: Record<string, any> = { isDeleted: false };
 
@@ -153,7 +163,7 @@ export class ProductService {
     ]);
 
     const enrichedProducts = await Promise.all(
-      data.map(async (product) => this.enrichProduct(product)),
+      data.map(async (product) => this.enrichProduct(product, user)),
     );
 
     return new PaginatedReturnType<ProductDocument[]>({
@@ -165,7 +175,7 @@ export class ProductService {
     });
   }
 
-  public async enrichProduct(product: ProductDocument) {
+  public async enrichProduct(product: ProductDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(product.businessId);
       const productImages = await this.uploadService.getSignedUrl(
@@ -174,10 +184,23 @@ export class ProductService {
       const businessData = await this.businessService.enrichedBusiness(
         business as any,
       );
+
+      let hasBookmarked = false;
+      if (user) {
+        const bookmark = await this.bookmarkModel.findOne({
+          userId: user._id,
+          productId: product._id,
+          type: BOOKMARK_TYPE.PRODUCT,
+          isDeleted: false,
+        });
+        if (bookmark) hasBookmarked = true;
+      }
+
       return {
         ...product.toObject(),
         business: businessData,
         pictures: productImages,
+        hasBookmarked,
       };
     } catch (error) {
       this.logger.error('Error enriching product business name', error);

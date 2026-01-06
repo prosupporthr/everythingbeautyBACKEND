@@ -5,6 +5,7 @@ import { BookmarksService } from './bookmarks.service';
 import { Bookmark, BookmarkSchema } from '@/schemas/Bookmark.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
+import { UploadService } from '../upload/upload.service';
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { JwtService } from '@nestjs/jwt';
     ]),
   ],
   controllers: [BookmarksController],
-  providers: [BookmarksService, JwtService],
+  providers: [BookmarksService, JwtService, UploadService],
 })
 export class BookmarksModule {}
