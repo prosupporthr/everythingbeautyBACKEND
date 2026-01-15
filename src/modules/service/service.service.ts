@@ -138,7 +138,6 @@ export class ServiceService {
         .exec(),
       this.serviceModel.countDocuments({
         isDeleted: false,
-        enabled: true,
       }),
     ]);
 

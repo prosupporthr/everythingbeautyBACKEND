@@ -30,6 +30,7 @@ import { AuthGuard } from '@/common/guards/auth/auth.guard';
 import { UserAuthCheckGuard } from '@/common/guards/user-auth-check/user-auth-check.guard';
 import express from 'express';
 import { UserDocument } from '@/schemas/User.schema';
+import { AdminAuthGuard } from '@/common/guards/admin-auth/admin-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Product')
@@ -44,6 +45,21 @@ export class ProductController {
   @ApiOkResponse({ description: 'Product created' })
   async createProduct(@Body() dto: CreateProductDto): Promise<ReturnType> {
     return this.productService.createProduct(dto);
+  }
+
+  @Get('all')
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Get all products (paginated)' })
+  @ApiOkResponse({ description: 'All products fetched' })
+  async getAllProducts(
+    @Query() query: PaginationQueryDto,
+    @Req() req: express.Request,
+  ): Promise<PaginatedReturnType> {
+    const user = req['user'] as UserDocument;
+    if (user) {
+      return this.productService.getAllProducts(query, user);
+    }
+    return this.productService.getAllProducts(query);
   }
 
   @Get('filter')

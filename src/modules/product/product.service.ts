@@ -175,6 +175,34 @@ export class ProductService {
     });
   }
 
+  async getAllProducts(
+    { page = 1, limit = 10 }: PaginationQueryDto,
+    user?: UserDocument,
+  ): Promise<PaginatedReturnType<ProductDocument[]>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.productModel
+        .find({ isDeleted: false })
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec(),
+      this.productModel.countDocuments({ isDeleted: false }),
+    ]);
+
+    const enrichedProducts = await Promise.all(
+      data.map(async (product) => this.enrichProduct(product, user)),
+    );
+
+    return new PaginatedReturnType<ProductDocument[]>({
+      success: true,
+      message: 'All products fetched',
+      data: enrichedProducts,
+      page,
+      total,
+    });
+  }
+
   public async enrichProduct(product: ProductDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(product.businessId);

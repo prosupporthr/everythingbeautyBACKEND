@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   BadRequestException,
   Injectable,
@@ -22,6 +25,8 @@ import { UploadService } from '../upload/upload.service';
 import { ConfigService } from '@nestjs/config';
 import { Business } from '@/schemas/Business.schema';
 import { LoginGoogleDto } from './dto/login-google.dto';
+import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
+import { PaginationQueryDto } from '@/modules/business/dto/pagination-query.dto';
 
 @Injectable()
 export class UserService {
@@ -195,6 +200,34 @@ export class UserService {
     };
   }
 
+  async getAllUsers({
+    page = 1,
+    limit = 10,
+  }: PaginationQueryDto): Promise<PaginatedReturnType> {
+    try {
+      const skip = (page - 1) * limit;
+      const [users, total] = await Promise.all([
+        this.userModel.find().skip(skip).limit(limit).exec(),
+        this.userModel.countDocuments(),
+      ]);
+
+      const enrichedUsers = await Promise.all(
+        users.map((user) => this.enrichUser(user)),
+      );
+
+      return new PaginatedReturnType({
+        success: true,
+        message: 'Users fetched successfully',
+        data: enrichedUsers,
+        page,
+        total,
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException('Failed to fetch users');
+    }
+  }
+
   async signInWithGoogle({ accessToken }: LoginGoogleDto): Promise<ReturnType> {
     try {
       if (!accessToken || typeof accessToken !== 'string') {
@@ -211,7 +244,6 @@ export class UserService {
         email,
         given_name: givenName,
         family_name: familyName,
-        picture,
       } = response?.data || {};
 
       if (!email) {

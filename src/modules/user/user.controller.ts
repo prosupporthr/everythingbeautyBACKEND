@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -23,16 +24,29 @@ import { LoginEmailDto } from './dto/login-email.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { LoginGoogleDto } from './dto/login-google.dto';
 import { ReturnType } from '@common/classes/ReturnType';
-import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
+import { PaginationQueryDto } from '@/modules/business/dto/pagination-query.dto';
+import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
+import { UserAuthCheckGuard } from '@/common/guards/user-auth-check/user-auth-check.guard';
 
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get()
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(UserAuthCheckGuard)
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiResponse({ status: 200, description: 'List of users' })
+  async getAllUsers(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.userService.getAllUsers(query);
+  }
+
   @Get(':id')
   @ApiBearerAuth('JWT-auth')
-  @UseGuards(UserAuthGuard)
+  @UseGuards(UserAuthCheckGuard)
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User details' })

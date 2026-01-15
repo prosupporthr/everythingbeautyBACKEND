@@ -28,6 +28,7 @@ import { AuthGuard } from '@/common/guards/auth/auth.guard';
 import { UserAuthCheckGuard } from '@/common/guards/user-auth-check/user-auth-check.guard';
 import express from 'express';
 import { UserDocument } from '@/schemas/User.schema';
+import { AdminAuthGuard } from '@/common/guards/admin-auth/admin-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Service')
@@ -45,14 +46,9 @@ export class ServiceController {
   }
 
   @Get('all')
-  @UseGuards(UserAuthCheckGuard)
-  @ApiOperation({ summary: 'Get all services for a business (paginated)' })
-  @ApiParam({
-    name: 'businessId',
-    description: 'Business ID',
-    example: '64f7c2d91c2f4a0012345678',
-  })
-  @ApiOkResponse({ description: 'Business services fetched (paginated)' })
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Get all services (paginated)' })
+  @ApiOkResponse({ description: 'All services fetched' })
   async getAllServices(
     @Query() query: PaginationQueryDto,
     @Req() req: express.Request,
