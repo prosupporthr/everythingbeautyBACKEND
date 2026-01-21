@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BadRequestException,
   Injectable,
@@ -149,6 +150,12 @@ export class MessagingService {
         type,
         message,
       });
+
+      await this.chatModel.findByIdAndUpdate(chatObjId, {
+        lastMessage: created._id,
+        updatedAt: new Date().toISOString(),
+      });
+
       const enriched = await this.enrichChatMessage(created);
       return new ReturnType({
         success: true,
@@ -318,6 +325,24 @@ export class MessagingService {
         ? await this.uploadService.getSignedUrl(recipient.profilePicture)
         : null;
 
+      let lastMessage: any = null;
+      if (chatObj.lastMessage) {
+        const msg = await this.chatMessageModel.findOne({
+          _id: chatObj.lastMessage,
+          isDeleted: false,
+        });
+        if (msg) lastMessage = await this.enrichChatMessage(msg);
+      }
+
+      if (!lastMessage) {
+        const latest = await this.chatMessageModel
+          .findOne({ chatId: chatObj._id, isDeleted: false })
+          .sort({ createdAt: -1 });
+        if (latest) {
+          lastMessage = await this.enrichChatMessage(latest);
+        }
+      }
+
       return {
         ...chatObj,
         sender: sender
@@ -326,6 +351,7 @@ export class MessagingService {
         recipient: recipient
           ? { ...recipient.toObject(), profilePicture: recipientPic }
           : null,
+        lastMessage,
       };
     } catch (error: any) {
       this.logger.error(error);

@@ -17,6 +17,13 @@ export class Chat extends MetaSchema {
     ref: 'User',
   })
   recipientId: ObjectId;
+
+  @Prop({
+    required: false,
+    type: SchemaTypes.ObjectId,
+    ref: 'ChatMessage',
+  })
+  lastMessage: ObjectId;
 }
 
 export type ChatDocument = HydratedDocument<Chat>;
