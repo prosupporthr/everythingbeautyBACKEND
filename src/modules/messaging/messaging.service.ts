@@ -176,6 +176,7 @@ export class MessagingService {
   async getUserChats(
     userId: string,
     query: PaginationQueryDto,
+    search?: string,
   ): Promise<PaginatedReturnType<ChatDocument[]>> {
     try {
       if (!isValidObjectId(userId))
@@ -184,7 +185,8 @@ export class MessagingService {
       const limit = Number(query.limit ?? 10);
       const skip = (page - 1) * limit;
 
-      const filter = {
+      // Base match: User must be a participant and chat not deleted
+      const matchStage: any = {
         isDeleted: false,
         $or: [
           { senderId: new Types.ObjectId(userId) },
@@ -192,14 +194,69 @@ export class MessagingService {
         ],
       };
 
-      const [chats, total] = await Promise.all([
-        this.chatModel
-          .find(filter)
-          .sort({ updatedAt: -1 })
-          .skip(skip)
-          .limit(limit),
-        this.chatModel.countDocuments(filter),
+      let pipeline: any[] = [{ $match: matchStage }];
+
+      if (search) {
+        // If searching, we need to join with users to filter by name
+        pipeline = [
+          ...pipeline,
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'senderId',
+              foreignField: '_id',
+              as: 'sender',
+            },
+          },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'recipientId',
+              foreignField: '_id',
+              as: 'recipient',
+            },
+          },
+          { $unwind: { path: '$sender', preserveNullAndEmptyArrays: true } },
+          { $unwind: { path: '$recipient', preserveNullAndEmptyArrays: true } },
+          {
+            $match: {
+              $or: [
+                {
+                  'sender.firstName': { $regex: search, $options: 'i' },
+                },
+                {
+                  'sender.lastName': { $regex: search, $options: 'i' },
+                },
+                {
+                  'recipient.firstName': { $regex: search, $options: 'i' },
+                },
+                {
+                  'recipient.lastName': { $regex: search, $options: 'i' },
+                },
+              ],
+            },
+          },
+        ];
+      }
+
+      // Pagination and Sort pipeline
+      const dataPipeline = [
+        ...pipeline,
+        { $sort: { updatedAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      ];
+
+      const countPipeline = [...pipeline, { $count: 'total' }];
+
+      const [chatsResult, countResult] = await Promise.all([
+        this.chatModel.aggregate(dataPipeline),
+        this.chatModel.aggregate(countPipeline),
       ]);
+
+      const chats = chatsResult as ChatDocument[];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const total = (countResult[0]?.total || 0) as number;
 
       const data = await Promise.all(chats.map((c) => this.enrichChat(c)));
 
@@ -209,6 +266,26 @@ export class MessagingService {
         data,
         page,
         total,
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  async getChatById(id: string): Promise<ReturnType> {
+    try {
+      if (!isValidObjectId(id)) throw new BadRequestException('Invalid chatId');
+      const chat = await this.chatModel.findOne({
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+      });
+      if (!chat) throw new NotFoundException('Chat not found');
+      const enriched = await this.enrichChat(chat);
+      return new ReturnType({
+        success: true,
+        message: 'Chat fetched',
+        data: enriched,
       });
     } catch (error) {
       if (error instanceof BadRequestException) throw error;

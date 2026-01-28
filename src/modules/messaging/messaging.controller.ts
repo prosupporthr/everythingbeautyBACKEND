@@ -66,11 +66,23 @@ export class MessagingController {
   async getUserChats(
     @Param('userId') userId: string,
     @Query() query: PaginationQueryDto,
+    @Query('search') search?: string,
   ): Promise<PaginatedReturnType> {
-    return this.messagingService.getUserChats(userId, query);
+    return this.messagingService.getUserChats(userId, query, search);
   }
 
-  // 4. Get all chat messages by chat id (paginated)
+  // 4. Get chat by ID
+  @Get('chats/:chatId')
+  @ApiOperation({
+    summary: 'Get chat by ID',
+  })
+  @ApiParam({ name: 'chatId', description: 'Chat ID' })
+  @ApiOkResponse({ description: 'Chat fetched' })
+  async getChatById(@Param('chatId') chatId: string): Promise<ReturnType> {
+    return this.messagingService.getChatById(chatId);
+  }
+
+  // 5. Get all chat messages by chat id (paginated)
   @Get('chats/:chatId/messages')
   @ApiOperation({
     summary: 'Get chat messages by chat id (paginated)',
@@ -84,7 +96,7 @@ export class MessagingController {
     return this.messagingService.getChatMessages(chatId, query);
   }
 
-  // 5. Delete chat
+  // 6. Delete chat
   @Delete('chats/:chatId')
   @UseGuards(UserAuthGuard)
   @ApiOperation({
@@ -96,7 +108,7 @@ export class MessagingController {
     return this.messagingService.deleteChat(chatId);
   }
 
-  // 6. Delete chat message
+  // 7. Delete chat message
   @Delete('messages/:messageId')
   @UseGuards(UserAuthGuard)
   @ApiOperation({
