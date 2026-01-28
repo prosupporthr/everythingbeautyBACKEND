@@ -40,8 +40,9 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'List of users' })
   async getAllUsers(
     @Query() query: PaginationQueryDto,
+    @Query('search') search?: string,
   ): Promise<PaginatedReturnType> {
-    return this.userService.getAllUsers(query);
+    return this.userService.getAllUsers(query, search);
   }
 
   @Get(':id')

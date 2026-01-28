@@ -200,15 +200,25 @@ export class UserService {
     };
   }
 
-  async getAllUsers({
-    page = 1,
-    limit = 10,
-  }: PaginationQueryDto): Promise<PaginatedReturnType> {
+  async getAllUsers(
+    { page = 1, limit = 10 }: PaginationQueryDto,
+    search?: string,
+  ): Promise<PaginatedReturnType> {
     try {
       const skip = (page - 1) * limit;
+
+      const query: any = {};
+      if (search) {
+        query.$or = [
+          { firstName: { $regex: search, $options: 'i' } },
+          { lastName: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+        ];
+      }
+
       const [users, total] = await Promise.all([
-        this.userModel.find().skip(skip).limit(limit).exec(),
-        this.userModel.countDocuments(),
+        this.userModel.find(query).skip(skip).limit(limit).exec(),
+        this.userModel.countDocuments(query),
       ]);
 
       const enrichedUsers = await Promise.all(

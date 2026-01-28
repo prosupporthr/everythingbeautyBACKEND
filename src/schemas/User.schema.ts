@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, SchemaType } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 import { MetaSchema } from './meta.schema';
 export type UserDocument = HydratedDocument<User>;
 
@@ -103,6 +103,22 @@ export class User extends MetaSchema {
     enum: PAYMENT_PLAN,
   })
   plan: PAYMENT_PLAN;
+
+  @Prop({
+    required: false,
+  })
+  stripeCustomerId: string;
+
+  @Prop({
+    required: false,
+  })
+  stripeConnectId: string;
+
+  @Prop({
+    type: Date,
+    required: false,
+  })
+  nextPaymentDate: Date | null;
 
   @Prop({
     required: false,
