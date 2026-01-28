@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import { AnalyticsController } from './analytics.controller';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
 import { Product, ProductSchema } from '@/schemas/Product.schema';
 import { Service, ServiceSchema } from '@/schemas/Service.Schema';
-import { Booking, BookingSchema } from '@/schemas/Booking.schema';
 import { Order, OrderSchema } from '@/schemas/Order.schema';
-import { Admin, AdminSchema } from '@/schemas/Admin.schema';
-import { JwtService } from '@nestjs/jwt';
+import { Booking, BookingSchema } from '@/schemas/Booking.schema';
+import { UploadService } from '../upload/upload.service';
 
 @Module({
   imports: [
@@ -18,12 +17,11 @@ import { JwtService } from '@nestjs/jwt';
       { name: Business.name, schema: BusinessSchema },
       { name: Product.name, schema: ProductSchema },
       { name: Service.name, schema: ServiceSchema },
-      { name: Booking.name, schema: BookingSchema },
       { name: Order.name, schema: OrderSchema },
-      { name: Admin.name, schema: AdminSchema },
+      { name: Booking.name, schema: BookingSchema },
     ]),
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService, JwtService],
+  providers: [AnalyticsService, UploadService],
 })
 export class AnalyticsModule {}
