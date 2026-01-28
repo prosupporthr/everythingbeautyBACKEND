@@ -9,6 +9,8 @@ import { Service, ServiceSchema } from '@/schemas/Service.Schema';
 import { Order, OrderSchema } from '@/schemas/Order.schema';
 import { Booking, BookingSchema } from '@/schemas/Booking.schema';
 import { UploadService } from '../upload/upload.service';
+import { Admin, AdminSchema } from '@/schemas/Admin.schema';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -19,9 +21,10 @@ import { UploadService } from '../upload/upload.service';
       { name: Service.name, schema: ServiceSchema },
       { name: Order.name, schema: OrderSchema },
       { name: Booking.name, schema: BookingSchema },
+      { name: Admin.name, schema: AdminSchema },
     ]),
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService, UploadService],
+  providers: [AnalyticsService, UploadService, JwtService],
 })
 export class AnalyticsModule {}
