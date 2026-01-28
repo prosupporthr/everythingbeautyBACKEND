@@ -22,6 +22,7 @@ import { AdminAuthModule } from './modules/admin-auth/admin-auth.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AddressModule } from './modules/address/address.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { RolesModule } from './modules/roles/roles.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -95,6 +96,7 @@ const logger = new Logger('AppModule');
     AdminModule,
     AddressModule,
     AnalyticsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,4 @@
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { MetaSchema } from './meta.schema';
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 
@@ -28,14 +28,14 @@ export class Admin extends MetaSchema {
   @Prop({ type: String })
   profilePicture: string;
 
-  @Prop({ type: String, enum: ADMIN_ROLE, default: ADMIN_ROLE.ADMIN })
-  role: ADMIN_ROLE;
-
   @Prop({ type: [String], enum: ACCESS, default: [ACCESS.DASHBOARD] })
   access: ACCESS[];
 
   @Prop({ type: Boolean, default: false })
   suspended: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'Role' })
+  role: Types.ObjectId;
 }
 
 export const AdminSchema = SchemaFactory.createForClass(Admin);
