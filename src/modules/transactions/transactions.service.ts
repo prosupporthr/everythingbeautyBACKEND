@@ -31,6 +31,7 @@ import {
   PAYMENT_STATUS as ORDER_PAYMENT_STATUS,
 } from '@/schemas/Order.schema';
 import { Product, ProductDocument } from '@/schemas/Product.schema';
+import { Business, BusinessDocument } from '@/schemas/Business.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Injectable()
@@ -46,6 +47,7 @@ export class TransactionsService {
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -464,10 +466,24 @@ export class TransactionsService {
         break;
 
       case PAYMENT_TYPE.BOOKING:
-        await this.bookingModel.findByIdAndUpdate(payment.typeId, {
-          paymentStatus: BOOKING_PAYMENT_STATUS.PAID,
-          status: BOOKING_STATUS.APPROVED,
-        });
+        {
+          const booking = await this.bookingModel.findById(payment.typeId);
+          if (booking) {
+            booking.paymentStatus = BOOKING_PAYMENT_STATUS.PAID;
+            booking.status = BOOKING_STATUS.APPROVED;
+            await booking.save();
+            const business = await this.businessModel.findById(
+              booking.businessId,
+            );
+            if (business) {
+              await this.walletModel.findOneAndUpdate(
+                { userId: business.userId },
+                { $inc: { balance: payment.amount } },
+                { upsert: true },
+              );
+            }
+          }
+        }
         break;
 
       case PAYMENT_TYPE.PRODUCT: {
@@ -480,6 +496,14 @@ export class TransactionsService {
           await this.productModel.findByIdAndUpdate(order.productId, {
             $inc: { quantity: -order.quantity },
           });
+          const business = await this.businessModel.findById(order.businessId);
+          if (business) {
+            await this.walletModel.findOneAndUpdate(
+              { userId: business.userId },
+              { $inc: { balance: payment.amount } },
+              { upsert: true },
+            );
+          }
         }
         break;
       }
