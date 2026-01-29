@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { CreateAccountLinkDto } from './dto/create-account-link.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
@@ -18,6 +19,13 @@ import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
+  @Get('wallet/:userId')
+  @ApiOperation({ summary: 'Get user wallet' })
+  @ApiOkResponse({ description: 'Wallet retrieved' })
+  async getWallet(@Param('userId') userId: string): Promise<ReturnType> {
+    return this.transactionsService.getWallet(userId);
+  }
+
   @Get('connect/status/:userId')
   @ApiOperation({ summary: 'Check stripe connected account status' })
   @ApiOkResponse({ description: 'Account status retrieved' })
@@ -25,6 +33,24 @@ export class TransactionsController {
     @Param('userId') userId: string,
   ): Promise<ReturnType> {
     return this.transactionsService.checkAccountStatus(userId);
+  }
+
+  @Post('create')
+  @ApiOperation({ summary: 'Create a new transaction (payment)' })
+  @ApiOkResponse({ description: 'Transaction created' })
+  async createTransaction(
+    @Body() dto: CreateTransactionDto,
+  ): Promise<ReturnType> {
+    return this.transactionsService.initiatePayment(dto);
+  }
+
+  @Get('verify-transaction/:id')
+  @ApiOperation({
+    summary: 'Verify transaction status and process if successful',
+  })
+  @ApiOkResponse({ description: 'Transaction verified' })
+  async verifyTransaction(@Param('id') id: string): Promise<ReturnType> {
+    return this.transactionsService.verifyTransaction(id);
   }
 
   @Post('initiate')

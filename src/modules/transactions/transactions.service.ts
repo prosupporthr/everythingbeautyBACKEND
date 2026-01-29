@@ -1,10 +1,37 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import Stripe from 'stripe';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { User, UserDocument } from '@/schemas/User.schema';
+import { Wallet, WalletDocument } from '@/schemas/Wallet.schema';
+import {
+  Payment,
+  PaymentDocument,
+  PAYMENT_TYPE,
+  PAYMENT_SOURCE,
+  PAYMENT_STATUS,
+} from '@/schemas/Payment.schema';
+import {
+  Booking,
+  BookingDocument,
+  STATUS as BOOKING_STATUS,
+  PAYMENT_STATUS as BOOKING_PAYMENT_STATUS,
+} from '@/schemas/Booking.schema';
+import {
+  Order,
+  OrderDocument,
+  ORDER_STATUS,
+  PAYMENT_STATUS as ORDER_PAYMENT_STATUS,
+} from '@/schemas/Order.schema';
+import { Product, ProductDocument } from '@/schemas/Product.schema';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -14,6 +41,11 @@ export class TransactionsService {
   constructor(
     private configService: ConfigService,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Wallet.name) private walletModel: Model<WalletDocument>,
+    @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
+    @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
+    @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    @InjectModel(Product.name) private productModel: Model<ProductDocument>,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -264,6 +296,207 @@ export class TransactionsService {
         message: error.message || 'Failed to verify payment',
         data: null,
       });
+    }
+  }
+
+  async getWallet(userId: string): Promise<ReturnType> {
+    try {
+      const wallet = await this.walletModel.findOne({ userId });
+      if (!wallet) throw new NotFoundException('Wallet not found');
+
+      return new ReturnType({
+        success: true,
+        message: 'Wallet retrieved',
+        data: wallet,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to get wallet',
+        data: null,
+      });
+    }
+  }
+
+  async initiatePayment(dto: CreateTransactionDto): Promise<ReturnType> {
+    try {
+      const { userId, amount, source, type, typeId, flow, currency } = dto;
+
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new NotFoundException('User not found');
+
+      // 1. Handle Stripe Payment
+      if (source === PAYMENT_SOURCE.STRIPE) {
+        const paymentIntent = await this.stripe.paymentIntents.create({
+          amount: Math.round(amount * 100),
+          currency: currency || 'usd',
+          metadata: {
+            userId,
+            type,
+            typeId,
+            flow,
+          },
+          automatic_payment_methods: { enabled: true },
+        });
+
+        const payment = await this.paymentModel.create({
+          userId,
+          amount,
+          source,
+          type,
+          flow,
+          typeId,
+          stripeIntentId: paymentIntent.id,
+          status: PAYMENT_STATUS.PENDING,
+        });
+
+        return new ReturnType({
+          success: true,
+          message: 'Payment initiated',
+          data: {
+            paymentId: payment._id,
+            clientSecret: paymentIntent.client_secret,
+            intentId: paymentIntent.id,
+          },
+        });
+      }
+
+      // 2. Handle Wallet Payment
+      if (source === PAYMENT_SOURCE.WALLET) {
+        const wallet = await this.walletModel.findOne({ userId });
+        if (!wallet) throw new NotFoundException('Wallet not found');
+
+        if (wallet.balance < amount) {
+          throw new BadRequestException('Insufficient wallet balance');
+        }
+
+        wallet.balance -= amount;
+        await wallet.save();
+
+        const payment = await this.paymentModel.create({
+          userId,
+          amount,
+          source,
+          type,
+          flow,
+          typeId,
+          status: PAYMENT_STATUS.SUCCESS,
+        });
+
+        await this.processSuccessfulPayment(payment);
+
+        return new ReturnType({
+          success: true,
+          message: 'Payment successful',
+          data: {
+            paymentId: payment._id,
+            status: PAYMENT_STATUS.SUCCESS,
+          },
+        });
+      }
+
+      throw new BadRequestException('Invalid payment source');
+    } catch (error: any) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to initiate payment',
+        data: null,
+      });
+    }
+  }
+
+  async verifyTransaction(paymentId: string): Promise<ReturnType> {
+    try {
+      const payment = await this.paymentModel.findById(paymentId);
+      if (!payment) throw new NotFoundException('Payment not found');
+
+      if (payment.status === PAYMENT_STATUS.SUCCESS) {
+        return new ReturnType({
+          success: true,
+          message: 'Payment already verified',
+          data: payment,
+        });
+      }
+
+      if (payment.source === PAYMENT_SOURCE.STRIPE && payment.stripeIntentId) {
+        const intent = await this.stripe.paymentIntents.retrieve(
+          payment.stripeIntentId,
+        );
+
+        if (intent.status === 'succeeded') {
+          payment.status = PAYMENT_STATUS.SUCCESS;
+          await payment.save();
+          await this.processSuccessfulPayment(payment);
+        } else if (intent.status === 'canceled') {
+          payment.status = PAYMENT_STATUS.FAILED;
+          await payment.save();
+        }
+      }
+
+      return new ReturnType({
+        success: true,
+        message: 'Transaction verification status',
+        data: payment,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to verify transaction',
+        data: null,
+      });
+    }
+  }
+
+  private async processSuccessfulPayment(payment: PaymentDocument) {
+    switch (payment.type) {
+      case PAYMENT_TYPE.WALLET_TOP_UP:
+        await this.walletModel.findOneAndUpdate(
+          { userId: payment.userId },
+          { $inc: { balance: payment.amount } },
+          { upsert: true },
+        );
+        break;
+
+      case PAYMENT_TYPE.BOOKING:
+        await this.bookingModel.findByIdAndUpdate(payment.typeId, {
+          paymentStatus: BOOKING_PAYMENT_STATUS.PAID,
+          status: BOOKING_STATUS.APPROVED,
+        });
+        break;
+
+      case PAYMENT_TYPE.PRODUCT: {
+        const order = await this.orderModel.findById(payment.typeId);
+        if (order) {
+          order.paymentStatus = ORDER_PAYMENT_STATUS.PAID;
+          order.status = ORDER_STATUS.COMPLETED;
+          await order.save();
+
+          await this.productModel.findByIdAndUpdate(order.productId, {
+            $inc: { quantity: -order.quantity },
+          });
+        }
+        break;
+      }
+
+      case PAYMENT_TYPE.MONTHLY_SUBSCRIPTION: {
+        const user = await this.userModel.findById(payment.userId);
+        if (user) {
+          const nextDate = new Date();
+          nextDate.setDate(nextDate.getDate() + 30);
+          user.nextPaymentDate = nextDate;
+          await user.save();
+        }
+        break;
+      }
+
+      case PAYMENT_TYPE.WITHDRAWAL:
+        break;
     }
   }
 }
