@@ -303,8 +303,10 @@ export class TransactionsService {
 
   async getWallet(userId: string): Promise<ReturnType> {
     try {
-      const wallet = await this.walletModel.findOne({ userId });
-      if (!wallet) throw new NotFoundException('Wallet not found');
+      let wallet = await this.walletModel.findOne({ userId });
+      if (!wallet) {
+        wallet = await this.walletModel.create({ userId, balance: 0 });
+      }
 
       return new ReturnType({
         success: true,
