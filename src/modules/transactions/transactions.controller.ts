@@ -6,7 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
-import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+// import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { CreateAccountLinkDto } from './dto/create-account-link.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
@@ -53,18 +53,18 @@ export class TransactionsController {
     return this.transactionsService.verifyTransaction(id);
   }
 
-  @Post('initiate')
-  @ApiOperation({ summary: 'Create a payment intent' })
-  @ApiOkResponse({ description: 'Payment intent created' })
-  async createPaymentIntent(
-    @Body() dto: CreatePaymentIntentDto,
-  ): Promise<ReturnType> {
-    return this.transactionsService.createPaymentIntent(
-      dto.amount,
-      dto.currency,
-      dto.metadata,
-    );
-  }
+  // @Post('initiate')
+  // @ApiOperation({ summary: 'Create a payment intent' })
+  // @ApiOkResponse({ description: 'Payment intent created' })
+  // async createPaymentIntent(
+  //   @Body() dto: CreatePaymentIntentDto,
+  // ): Promise<ReturnType> {
+  //   return this.transactionsService.createPaymentIntent(
+  //     dto.amount,
+  //     dto.currency,
+  //     dto.metadata,
+  //   );
+  // }
 
   @Get('verify/:id')
   @ApiOperation({ summary: 'Verify payment status' })
@@ -73,14 +73,14 @@ export class TransactionsController {
     return this.transactionsService.verifyPayment(id);
   }
 
-  @Post('customer/:userId')
-  @ApiOperation({ summary: 'Create a stripe customer' })
-  @ApiOkResponse({ description: 'Stripe customer created' })
-  async createStripeCustomer(
-    @Param('userId') userId: string,
-  ): Promise<ReturnType> {
-    return this.transactionsService.createStripeCustomer(userId);
-  }
+  // @Post('customer/:userId')
+  // @ApiOperation({ summary: 'Create a stripe customer' })
+  // @ApiOkResponse({ description: 'Stripe customer created' })
+  // async createStripeCustomer(
+  //   @Param('userId') userId: string,
+  // ): Promise<ReturnType> {
+  //   return this.transactionsService.createStripeCustomer(userId);
+  // }
 
   @Post('connect/:userId')
   @ApiOperation({ summary: 'Create a stripe connected account' })
