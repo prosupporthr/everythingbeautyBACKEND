@@ -34,6 +34,9 @@ import { Product, ProductDocument } from '@/schemas/Product.schema';
 import { Business, BusinessDocument } from '@/schemas/Business.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 
+import { GetTransactionsDto } from './dto/get-transactions.dto';
+import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
+
 @Injectable()
 export class TransactionsService {
   private stripe: Stripe;
@@ -267,6 +270,59 @@ export class TransactionsService {
     }
   }
 
+  async getLinkedAccounts(userId: string): Promise<ReturnType> {
+    try {
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new NotFoundException('User not found');
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (!(user as any).stripeConnectId) {
+        return new ReturnType({
+          success: false,
+          message: 'User does not have a connected account',
+          data: [],
+        });
+      }
+
+      const account = await this.stripe.accounts.retrieve(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+        (user as any).stripeConnectId,
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const externalAccounts = account.external_accounts?.data || [];
+
+      const formattedAccounts = externalAccounts.map((acc: any) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        id: acc.id,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        bankName: acc.bank_name,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        last4: acc.last4,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        currency: acc.currency,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        status: acc.status,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        isDefault: acc.default_for_currency,
+      }));
+
+      return new ReturnType({
+        success: true,
+        message: 'Linked accounts retrieved',
+        data: formattedAccounts,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to get linked accounts',
+        data: [],
+      });
+    }
+  }
+
   async verifyPayment(paymentIntentId: string): Promise<ReturnType> {
     try {
       const paymentIntent =
@@ -320,6 +376,50 @@ export class TransactionsService {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         message: error.message || 'Failed to get wallet',
         data: null,
+      });
+    }
+  }
+
+  async getTransactions(
+    userId: string,
+    query: GetTransactionsDto,
+  ): Promise<PaginatedReturnType> {
+    try {
+      const { page = 1, limit = 10, type, source, status, flow } = query;
+      const skip = (page - 1) * limit;
+
+      const filter: Record<string, any> = { userId };
+      if (type) filter.type = type;
+      if (source) filter.source = source;
+      if (status) filter.status = status;
+      if (flow) filter.flow = flow;
+
+      const [transactions, total] = await Promise.all([
+        this.paymentModel
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .exec(),
+        this.paymentModel.countDocuments(filter),
+      ]);
+
+      return new PaginatedReturnType({
+        success: true,
+        message: 'Transactions retrieved successfully',
+        data: transactions,
+        page,
+        total,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      return new PaginatedReturnType({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to retrieve transactions',
+        data: [],
+        page: query.page || 1,
+        total: 0,
       });
     }
   }

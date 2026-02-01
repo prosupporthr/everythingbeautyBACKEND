@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -8,8 +16,10 @@ import {
 import { TransactionsService } from './transactions.service';
 // import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { CreateAccountLinkDto } from './dto/create-account-link.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
+import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiTags('Transactions')
@@ -18,6 +28,16 @@ import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 @UseGuards(UserAuthGuard)
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
+
+  @Get('history/:userId')
+  @ApiOperation({ summary: 'Get user transaction history' })
+  @ApiOkResponse({ description: 'Transactions retrieved' })
+  async getTransactions(
+    @Param('userId') userId: string,
+    @Query() query: GetTransactionsDto,
+  ): Promise<PaginatedReturnType> {
+    return this.transactionsService.getTransactions(userId, query);
+  }
 
   @Get('wallet/:userId')
   @ApiOperation({ summary: 'Get user wallet' })
@@ -33,6 +53,15 @@ export class TransactionsController {
     @Param('userId') userId: string,
   ): Promise<ReturnType> {
     return this.transactionsService.checkAccountStatus(userId);
+  }
+
+  @Get('linked-accounts/:userId')
+  @ApiOperation({ summary: 'Get linked bank accounts from Stripe' })
+  @ApiOkResponse({ description: 'Linked accounts retrieved' })
+  async getLinkedAccounts(
+    @Param('userId') userId: string,
+  ): Promise<ReturnType> {
+    return this.transactionsService.getLinkedAccounts(userId);
   }
 
   @Post('create')
