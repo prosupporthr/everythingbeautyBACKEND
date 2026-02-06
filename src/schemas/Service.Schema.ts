@@ -37,6 +37,21 @@ export class Service extends MetaSchema {
   @Prop({
     required: false,
     type: Boolean,
+    default: false,
+  })
+  acceptsInitialDeposit: boolean;
+
+  @Prop({
+    required: false,
+    type: Number,
+    min: 0,
+    max: 50,
+  })
+  initialDepositPercentage: number;
+
+  @Prop({
+    required: false,
+    type: Boolean,
     default: true,
   })
   allowReview: boolean;

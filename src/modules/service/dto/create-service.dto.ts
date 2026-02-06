@@ -1,9 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsBoolean, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsMongoId,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateServiceDto {
-  @ApiProperty({ description: 'Business ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiProperty({
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @IsMongoId()
   businessId: string;
 
@@ -12,7 +24,11 @@ export class CreateServiceDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Service description', example: 'Professional haircut and styling', required: false })
+  @ApiProperty({
+    description: 'Service description',
+    example: 'Professional haircut and styling',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -28,7 +44,31 @@ export class CreateServiceDto {
   @IsBoolean()
   allowReview?: boolean;
 
-  @ApiProperty({ description: 'Pictures', example: ['images/service1.png'], required: false })
+  @ApiProperty({
+    description: 'Accepts initial deposit',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  acceptsInitialDeposit?: boolean;
+
+  @ApiProperty({
+    description: 'Initial deposit percentage',
+    example: 20,
+    required: false,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  initialDepositPercentage?: number;
+
+  @ApiProperty({
+    description: 'Pictures',
+    example: ['images/service1.png'],
+    required: false,
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
