@@ -7,6 +7,12 @@ export enum CHARGE_TIMING {
   BEFORE_ORDER = 'before_order',
 }
 
+export enum LICENSE_STATUS {
+  NOT_LICENSED = 'NOT_LICENSED',
+  PENDING = 'PENDING',
+  LICENSED = 'LICENSED',
+}
+
 @Schema({
   timestamps: true,
 })
@@ -99,6 +105,19 @@ export class Business extends MetaSchema {
     default: true,
   })
   enabled: boolean;
+
+  @Prop({
+    required: false,
+    enum: LICENSE_STATUS,
+    default: LICENSE_STATUS.NOT_LICENSED,
+  })
+  licenseStatus: LICENSE_STATUS;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
+  licenseNumber: string;
 }
 
 export type BusinessDocument = HydratedDocument<Business>;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import {
   BadRequestException,
   Injectable,
@@ -6,11 +7,16 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Business, BusinessDocument } from '@schemas/Business.schema';
+import {
+  Business,
+  BusinessDocument,
+  LICENSE_STATUS,
+} from '@schemas/Business.schema';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { EditBusinessDto } from './dto/edit-business.dto';
+import { UpdateBusinessLicenseDto } from './dto/update-business-license.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { UploadService } from '../upload/upload.service';
@@ -18,6 +24,7 @@ import { Types } from 'mongoose';
 import { User } from '@/schemas/User.schema';
 import { Service } from '@/schemas/Service.Schema';
 import { UserService } from '../user/user.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BusinessService {
@@ -29,6 +36,7 @@ export class BusinessService {
     @InjectModel(Service.name) private readonly serviceModel: Model<Service>,
     private readonly uploadService: UploadService,
     private userService: UserService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createBusiness(dto: CreateBusinessDto): Promise<ReturnType> {
@@ -39,7 +47,18 @@ export class BusinessService {
     if (business) {
       throw new NotFoundException('You already have a business');
     }
-    const created = await this.businessModel.create({ ...dto });
+
+    const businessData = { ...dto, licenseStatus: LICENSE_STATUS.NOT_LICENSED };
+    if (dto.licenseNumber) {
+      businessData.licenseStatus = LICENSE_STATUS.PENDING;
+    }
+
+    const created = await this.businessModel.create(businessData);
+    await this.notificationsService.createNotification({
+      title: 'New Business Registered',
+      description: `Business ${created.name} has been registered.`,
+      isForAdmin: true,
+    });
     const enrichedBusiness = await this.enrichedBusiness(created);
     return new ReturnType({
       success: true,
@@ -62,6 +81,35 @@ export class BusinessService {
     return new ReturnType({
       success: true,
       message: 'Business updated successfully',
+      data: enrichedBusiness,
+    });
+  }
+
+  async updateLicenseStatus(
+    id: string,
+    dto: UpdateBusinessLicenseDto,
+  ): Promise<ReturnType> {
+    const updated = await this.businessModel.findOneAndUpdate(
+      { _id: id, isDeleted: false },
+      { licenseStatus: dto.status, updatedAt: new Date().toISOString() },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new NotFoundException('Business not found');
+    }
+    const enrichedBusiness = await this.enrichedBusiness(updated);
+
+    // Notify user about license status change
+    await this.notificationsService.createNotification({
+      userId: updated.userId.toString(),
+      title: 'Business License Status Updated',
+      description: `Your business ${updated.name} license status has been updated to ${dto.status}.`,
+    });
+
+    return new ReturnType({
+      success: true,
+      message: 'Business license status updated successfully',
       data: enrichedBusiness,
     });
   }

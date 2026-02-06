@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -13,6 +14,8 @@ import { EditOrderDto } from './dto/edit-order.dto';
 import { UserService } from '../user/user.service';
 import { BusinessService } from '../business/business.service';
 import { ProductService } from '../product/product.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '@/common/services/email/email.service';
 
 @Injectable()
 export class OrderService {
@@ -28,11 +31,34 @@ export class OrderService {
     private userService: UserService,
     private businessService: BusinessService,
     private productService: ProductService,
+    private notificationsService: NotificationsService,
+    private emailService: EmailService,
   ) {}
 
   async createOrder(dto: CreateOrderDto): Promise<ReturnType> {
     const created = await this.orderModel.create({ ...dto });
     const enriched = await this.enrichOrder(created);
+
+    // Notification to business owner
+    const businessOwnerId =
+      enriched?.business?.userId || enriched?.business?.creator?.id;
+    if (businessOwnerId) {
+      await this.notificationsService.createNotification({
+        userId: businessOwnerId.toString(),
+        title: 'New Order Received',
+        description: `You have received a new order for ${enriched.product?.name} from ${enriched.user?.firstName}.`,
+      });
+    }
+
+    // Email to user
+    if (enriched?.user?.email) {
+      await this.emailService.sendGeneralMail({
+        email: enriched.user.email,
+        subject: 'Order Confirmation',
+        body: `<p>Thank you for your order of ${enriched.product?.name}. Your order ID is ${enriched._id.toString()}.</p>`,
+      });
+    }
+
     return new ReturnType({
       success: true,
       message: 'Order created',

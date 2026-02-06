@@ -14,11 +14,13 @@ import { ServiceModule } from '../service/service.module';
 import { OtpService } from '@/common/services/otp/otp.service';
 import { UploadService } from '../upload/upload.service';
 import { BusinessModule } from '../business/business.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailService } from '@/common/services/email/email.service';
 import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    NotificationsModule,
     MongooseModule.forFeature([
       { name: Booking.name, schema: BookingSchema },
       { name: User.name, schema: UserSchema },

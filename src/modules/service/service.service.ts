@@ -19,6 +19,7 @@ import {
   BookmarkDocument,
   BOOKMARK_TYPE,
 } from '@/schemas/Bookmark.schema';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ServiceService {
@@ -32,10 +33,16 @@ export class ServiceService {
     private readonly bookmarkModel: Model<BookmarkDocument>,
     private uploadService: UploadService,
     private businessService: BusinessService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async createService(dto: CreateServiceDto): Promise<ReturnType> {
     const created = await this.serviceModel.create({ ...dto });
+    await this.notificationsService.createNotification({
+      title: 'New Service Created',
+      description: `Service ${created.name} has been created.`,
+      isForAdmin: true,
+    });
     const enriched = await this.enrichService(created);
     return new ReturnType({
       success: true,

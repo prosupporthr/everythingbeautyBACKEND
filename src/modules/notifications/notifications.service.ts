@@ -42,7 +42,7 @@ export class NotificationsService {
   async getUserNotifications(
     userId: string,
     query: GetNotificationsDto,
-  ): Promise<PaginatedReturnType> {
+  ): Promise<PaginatedReturnType<NotificationDocument[]>> {
     try {
       const { page = 1, limit = 10 } = query;
       const skip = (page - 1) * limit;
@@ -59,7 +59,7 @@ export class NotificationsService {
         this.notificationModel.countDocuments(filter),
       ]);
 
-      return new PaginatedReturnType({
+      return new PaginatedReturnType<NotificationDocument[]>({
         success: true,
         message: 'Notifications retrieved successfully',
         data: notifications,
@@ -68,7 +68,7 @@ export class NotificationsService {
       });
     } catch (error: any) {
       this.logger.error(error);
-      return new PaginatedReturnType({
+      return new PaginatedReturnType<NotificationDocument[]>({
         success: false,
         message: error.message || 'Failed to retrieve notifications',
         data: [],
@@ -108,7 +108,7 @@ export class NotificationsService {
   async getAdminNotifications(
     adminId: string,
     query: GetNotificationsDto,
-  ): Promise<PaginatedReturnType> {
+  ): Promise<PaginatedReturnType<NotificationDocument[]>> {
     try {
       const { page = 1, limit = 10 } = query;
       const skip = (page - 1) * limit;
@@ -129,7 +129,7 @@ export class NotificationsService {
         this.notificationModel.countDocuments(filter),
       ]);
 
-      return new PaginatedReturnType({
+      return new PaginatedReturnType<NotificationDocument[]>({
         success: true,
         message: 'Admin notifications retrieved successfully',
         data: notifications,
@@ -138,7 +138,7 @@ export class NotificationsService {
       });
     } catch (error: any) {
       this.logger.error(error);
-      return new PaginatedReturnType({
+      return new PaginatedReturnType<NotificationDocument[]>({
         success: false,
         message: error.message || 'Failed to retrieve admin notifications',
         data: [],

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { BusinessController } from './business.controller';
 import { BusinessService } from './business.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Business, BusinessSchema } from '@schemas/Business.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
@@ -24,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
       { name: Otp.name, schema: OtpSchema },
       { name: Admin.name, schema: AdminSchema },
     ]),
+    NotificationsModule,
     UserModule,
   ],
   controllers: [BusinessController],

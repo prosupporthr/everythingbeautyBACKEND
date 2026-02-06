@@ -15,6 +15,8 @@ import { Service, ServiceDocument } from '@/schemas/Service.Schema';
 import { User } from '@/schemas/User.schema';
 import { UserService } from '../user/user.service';
 import { ServiceService } from '../service/service.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '@/common/services/email/email.service';
 
 @Injectable()
 export class BookingService {
@@ -27,6 +29,8 @@ export class BookingService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private userService: UserService,
     private serviceService: ServiceService,
+    private notificationsService: NotificationsService,
+    private emailService: EmailService,
   ) {}
 
   async createBooking(dto: CreateBookingDto): Promise<ReturnType> {
@@ -39,6 +43,26 @@ export class BookingService {
         bookingDate: dto.bookingDate,
       });
       const enrichedBooking = await this.endrichBooking(booking);
+
+      // Notification to business owner
+      const businessOwnerId = enrichedBooking.service?.business?.creator?.id;
+      if (businessOwnerId) {
+        await this.notificationsService.createNotification({
+          userId: businessOwnerId.toString(),
+          title: 'New Booking Received',
+          description: `You have received a new booking for ${enrichedBooking.service?.name} from ${enrichedBooking.user?.firstName}.`,
+        });
+      }
+
+      // Email to user
+      if (enrichedBooking.user?.email) {
+        await this.emailService.sendGeneralMail({
+          email: enrichedBooking.user.email,
+          subject: 'Booking Confirmation',
+          body: `<p>Thank you for your booking of ${enrichedBooking.service?.name}. Your booking ID is ${enrichedBooking._id.toString()}.</p>`,
+        });
+      }
+
       return new ReturnType({
         success: true,
         message: 'Booking created',
@@ -107,9 +131,10 @@ export class BookingService {
     if (time) {
       filter.bookingDate = time;
     } else if (startDate || endDate) {
-      filter.bookingDate = {};
-      if (startDate) filter.bookingDate.$gte = startDate;
-      if (endDate) filter.bookingDate.$lte = endDate;
+      const dateFilter: Record<string, string> = {};
+      if (startDate) dateFilter['$gte'] = startDate;
+      if (endDate) dateFilter['$lte'] = endDate;
+      filter.bookingDate = dateFilter;
     }
 
     const bookings = await this.bookingModel

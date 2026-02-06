@@ -10,9 +10,11 @@ import { Business, BusinessSchema } from '@/schemas/Business.schema';
 import { UserModule } from '../user/user.module';
 import { ProductModule } from '../product/product.module';
 import { BusinessModule } from '../business/business.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    NotificationsModule,
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
       { name: User.name, schema: UserSchema },

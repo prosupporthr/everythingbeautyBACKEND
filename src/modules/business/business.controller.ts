@@ -20,11 +20,13 @@ import {
 import { BusinessService } from './business.service';
 import { CreateBusinessDto } from './dto/create-business.dto';
 import { EditBusinessDto } from './dto/edit-business.dto';
+import { UpdateBusinessLicenseDto } from './dto/update-business-license.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { BusinessFilterQueryDto } from './dto/business-filter-query.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { AuthGuard } from '@/common/guards/auth/auth.guard';
+import { AdminAuthGuard } from '@/common/guards/admin-auth/admin-auth.guard';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('business')
@@ -54,6 +56,24 @@ export class BusinessController {
     @Body() dto: EditBusinessDto,
   ): Promise<ReturnType> {
     return this.businessService.editBusiness(id, dto);
+  }
+
+  @Patch('admin/:id/license')
+  @UseGuards(AdminAuthGuard)
+  @ApiOperation({ summary: 'Update business license status (Admin only)' })
+  @ApiParam({
+    name: 'id',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({
+    description: 'Business license status updated successfully',
+  })
+  async updateLicenseStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateBusinessLicenseDto,
+  ): Promise<ReturnType> {
+    return this.businessService.updateLicenseStatus(id, dto);
   }
 
   @Delete(':id')

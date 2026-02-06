@@ -74,6 +74,15 @@ export class EditBusinessDto {
   chargeTiming?: CHARGE_TIMING;
 
   @ApiProperty({
+    description: 'Business license number',
+    example: 'LIC-12345678',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  licenseNumber?: string;
+
+  @ApiProperty({
     description: 'must be from the upload endpoint',
     example: ['https://cdn.example.com/1.png'],
     required: false,

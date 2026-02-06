@@ -27,6 +27,7 @@ import { Business } from '@/schemas/Business.schema';
 import { LoginGoogleDto } from './dto/login-google.dto';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@/modules/business/dto/pagination-query.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UserService {
@@ -39,6 +40,7 @@ export class UserService {
     private uploadService: UploadService,
     private configService: ConfigService,
     private httpService: HttpService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async signUpWithEmail({ email }: SignupEmailDto): Promise<ReturnType> {
@@ -80,12 +82,24 @@ export class UserService {
         throw new BadRequestException('Invalid OTP or user not found');
       }
 
+      const existingUser = await this.userModel.findById(userId);
+      if (!existingUser) throw new NotFoundException('User not found');
+      const isNewSignup = !existingUser.emailVerified;
+
       const user = await this.userModel.findByIdAndUpdate(
         userId,
         { emailVerified: true },
         { new: true },
       );
       if (!user) throw new NotFoundException('User not found');
+
+      if (isNewSignup) {
+        await this.notificationsService.createNotification({
+          title: 'New User Signup',
+          description: `User ${user.firstName} ${user.lastName} (${user.email}) has signed up.`,
+          isForAdmin: true,
+        });
+      }
 
       const token = await this.jwtService.signAsync(
         {
@@ -273,6 +287,11 @@ export class UserService {
           email: normalizedEmail,
           emailVerified: true,
           profilePicture: '',
+        });
+        await this.notificationsService.createNotification({
+          title: 'New User Signup',
+          description: `User ${user.firstName} ${user.lastName} (${user.email}) has signed up via Google.`,
+          isForAdmin: true,
         });
       } else {
         const updated = await this.userModel.findByIdAndUpdate(

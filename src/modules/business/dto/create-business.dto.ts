@@ -65,6 +65,14 @@ export class CreateBusinessDto {
   chargeTiming?: CHARGE_TIMING;
 
   @ApiProperty({
+    description: 'Business license number',
+    example: 'LIC-12345678',
+  })
+  @IsOptional()
+  @IsString()
+  licenseNumber?: string;
+
+  @ApiProperty({
     description: 'Business pictures',
     example: ['https://cdn.example.com/1.png'],
   })

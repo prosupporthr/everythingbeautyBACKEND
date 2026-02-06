@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ServiceController } from './service.controller';
 import { ServiceService } from './service.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 import {
   Service as ServiceEntity,
   ServiceSchema,
@@ -26,6 +27,7 @@ import { BookmarkSchema, Bookmark } from '@/schemas/Bookmark.schema';
       { name: Business.name, schema: BusinessSchema },
       { name: Bookmark.name, schema: BookmarkSchema },
     ]),
+    NotificationsModule,
     BusinessModule,
   ],
   controllers: [ServiceController],

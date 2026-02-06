@@ -36,6 +36,27 @@ export class EmailService implements OnModuleInit {
     this.logger.log(data);
   }
 
+  async sendGeneralMail({
+    email,
+    subject,
+    body,
+  }: {
+    email: string;
+    subject: string;
+    body: string;
+  }) {
+    const { error, data } = await this.resend.emails.send({
+      from: 'Everything Beautiful Support <support@chasescroll.com>',
+      to: [email],
+      subject,
+      html: body,
+    });
+    if (error) {
+      this.logger.error(error);
+    }
+    this.logger.log(data);
+  }
+
   async sendCoachMail({
     email,
     subject,

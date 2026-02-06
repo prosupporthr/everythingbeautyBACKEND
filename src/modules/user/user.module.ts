@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { JwtModule, JwtService } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -11,10 +11,12 @@ import { OtpService } from '@/common/services/otp/otp.service';
 import { EmailService } from '@/common/services/email/email.service';
 import { UploadService } from '../upload/upload.service';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
-import { HttpModule, HttpService } from '@nestjs/axios';
+import { HttpModule } from '@nestjs/axios';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    NotificationsModule,
     ConfigModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
@@ -33,6 +35,6 @@ import { HttpModule, HttpService } from '@nestjs/axios';
     UploadService,
     ConfigService,
   ],
-  exports: [MongooseModule, UserService],
+  exports: [MongooseModule, UserService, EmailService],
 })
 export class UserModule {}

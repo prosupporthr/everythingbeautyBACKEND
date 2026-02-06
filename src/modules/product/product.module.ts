@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Product, ProductSchema } from '@schemas/Product.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
@@ -23,6 +24,7 @@ import { Bookmark, BookmarkSchema } from '@/schemas/Bookmark.schema';
       { name: Business.name, schema: BusinessSchema },
       { name: Bookmark.name, schema: BookmarkSchema },
     ]),
+    NotificationsModule,
     BusinessModule,
   ],
   controllers: [ProductController],
