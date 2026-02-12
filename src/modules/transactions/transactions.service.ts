@@ -9,7 +9,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import Stripe from 'stripe';
 import { ReturnType } from '@/common/classes/ReturnType';
-import { User, UserDocument } from '@/schemas/User.schema';
+import { PAYMENT_PLAN, User, UserDocument } from '@/schemas/User.schema';
 import { Wallet, WalletDocument } from '@/schemas/Wallet.schema';
 import {
   Payment,
@@ -616,6 +616,7 @@ export class TransactionsService {
           const nextDate = new Date();
           nextDate.setDate(nextDate.getDate() + 30);
           user.nextPaymentDate = nextDate;
+          user.plan = PAYMENT_PLAN.PREMIUM;
           await user.save();
         }
         break;
