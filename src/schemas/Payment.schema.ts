@@ -75,6 +75,30 @@ export class Payment extends MetaSchema {
   stripeIntentId: string;
 
   @Prop({
+    required: false,
+    type: String,
+  })
+  stripePayoutId?: string;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
+  destinationBankId?: string;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
+  subscriptionId?: string;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
+  invoiceId?: string;
+
+  @Prop({
     required: true,
     type: String,
     enum: PAYMENT_STATUS,

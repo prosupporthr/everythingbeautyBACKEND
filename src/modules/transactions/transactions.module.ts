@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TransactionsController } from './transactions.controller';
+import { TransactionsWebhookController } from './transactions.webhook.controller';
 import { TransactionsService } from './transactions.service';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { Wallet, WalletSchema } from '@/schemas/Wallet.schema';
@@ -24,7 +25,7 @@ import { Business, BusinessSchema } from '@/schemas/Business.schema';
       { name: Business.name, schema: BusinessSchema },
     ]),
   ],
-  controllers: [TransactionsController],
+  controllers: [TransactionsController, TransactionsWebhookController],
   providers: [TransactionsService, ConfigService, JwtService],
   exports: [TransactionsService],
 })

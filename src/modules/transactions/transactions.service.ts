@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Injectable,
   Logger,
@@ -17,6 +22,7 @@ import {
   PAYMENT_TYPE,
   PAYMENT_SOURCE,
   PAYMENT_STATUS,
+  PAYMENT_FLOW,
 } from '@/schemas/Payment.schema';
 import {
   Booking,
@@ -36,6 +42,9 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
+import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
+import { StartSubscriptionDto } from './dto/start-subscription.dto';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 
 @Injectable()
 export class TransactionsService {
@@ -136,6 +145,236 @@ export class TransactionsService {
         message: error.message || 'Failed to create stripe customer',
         data: null,
       });
+    }
+  }
+
+  async startSubscription(dto: StartSubscriptionDto): Promise<ReturnType> {
+    try {
+      const { userId, priceId, successUrl, cancelUrl } = dto;
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new NotFoundException('User not found');
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const res = await this.createStripeCustomer(userId);
+        if (!res.success || !res.data?.stripeCustomerId)
+          throw new BadRequestException('Failed to create customer');
+        customerId = res.data.stripeCustomerId as string;
+      }
+      const session = await this.stripe.checkout.sessions.create({
+        mode: 'subscription',
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl + '?session_id={CHECKOUT_SESSION_ID}',
+        cancel_url: cancelUrl,
+      });
+      return new ReturnType({
+        success: true,
+        message: 'Checkout session created',
+        data: { url: session.url, id: session.id },
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        error?.message || 'Failed to start subscription',
+      );
+    }
+  }
+
+  async cancelSubscription(dto: CancelSubscriptionDto): Promise<ReturnType> {
+    try {
+      const { userId } = dto;
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new NotFoundException('User not found');
+      const customerId = user.stripeCustomerId;
+      if (!customerId) throw new BadRequestException('No customer on file');
+      const subs = await this.stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+      if (!subs.data.length)
+        throw new NotFoundException('No active subscription found');
+      const subscription = subs.data[0];
+      const updated = await this.stripe.subscriptions.update(subscription.id, {
+        cancel_at_period_end: true,
+      });
+      return new ReturnType({
+        success: true,
+        message: 'Subscription cancellation scheduled',
+        data: {
+          id: updated.id,
+          cancelAtPeriodEnd: updated.cancel_at_period_end,
+        },
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        error?.message || 'Failed to cancel subscription',
+      );
+    }
+  }
+
+  async handleStripeWebhook(req: any, body: any, signature: string) {
+    const secret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    if (!secret) {
+      return { received: true };
+    }
+    let event: Stripe.Event;
+    try {
+      const rawBody = req?.rawBody ?? JSON.stringify(body);
+      event = this.stripe.webhooks.constructEvent(
+        typeof rawBody === 'string' ? rawBody : rawBody.toString(),
+        signature,
+        secret,
+      );
+    } catch (err: any) {
+      throw new BadRequestException('Invalid signature');
+    }
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as any;
+          const customerId = session.customer as string;
+          const user = await this.userModel.findOne({
+            stripeCustomerId: customerId,
+          });
+          if (user) {
+            user.plan = PAYMENT_PLAN.PREMIUM;
+            await user.save();
+          }
+          break;
+        }
+        case 'invoice.payment_succeeded': {
+          const invoice = event.data.object as any;
+          const customerId = invoice.customer as string;
+          const amountPaid = invoice.amount_paid as number;
+          const subscriptionId = invoice.subscription as string | undefined;
+          const user = await this.userModel.findOne({
+            stripeCustomerId: customerId,
+          });
+          if (user) {
+            const periodEnd =
+              invoice.lines?.data?.[0]?.period?.end ||
+              Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+            user.plan = PAYMENT_PLAN.PREMIUM;
+            user.nextPaymentDate = new Date(periodEnd * 1000);
+            await user.save();
+            await this.paymentModel.create({
+              userId: user._id,
+              amount: (amountPaid || 0) / 100,
+              source: PAYMENT_SOURCE.STRIPE,
+              type: PAYMENT_TYPE.MONTHLY_SUBSCRIPTION,
+              flow: PAYMENT_FLOW.INBOUND,
+              typeId: subscriptionId || (invoice.id as string),
+              subscriptionId: subscriptionId,
+              invoiceId: invoice.id as string,
+              status: PAYMENT_STATUS.SUCCESS,
+            });
+          }
+          break;
+        }
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as any;
+          const customerId = invoice.customer as string;
+          const user = await this.userModel.findOne({
+            stripeCustomerId: customerId,
+          });
+          if (user) {
+            await this.paymentModel.create({
+              userId: user._id,
+              amount: 0,
+              source: PAYMENT_SOURCE.STRIPE,
+              type: PAYMENT_TYPE.MONTHLY_SUBSCRIPTION,
+              flow: PAYMENT_FLOW.INBOUND,
+              typeId: (invoice.id as string) || 'invoice',
+              invoiceId: invoice.id as string,
+              status: PAYMENT_STATUS.FAILED,
+            });
+          }
+          break;
+        }
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as any;
+          const subs = await this.stripe.subscriptions.retrieve(
+            subscription.id,
+          );
+          const customerId = subs.customer as string;
+          const user = await this.userModel.findOne({
+            stripeCustomerId: customerId,
+          });
+          if (user) {
+            user.plan = PAYMENT_PLAN.FREE;
+            user.nextPaymentDate = null;
+            await user.save();
+          }
+          break;
+        }
+      }
+      return { received: true };
+    } catch (error: any) {
+      this.logger.error(error);
+      throw new BadRequestException('Webhook handling failed');
+    }
+  }
+
+  async requestWithdrawal(dto: CreateWithdrawalDto): Promise<ReturnType> {
+    try {
+      const { userId, amount, bankAccountId, currency } = dto;
+      const user = await this.userModel.findById(userId);
+      if (!user) throw new NotFoundException('User not found');
+      const wallet = await this.walletModel.findOne({ userId });
+      if (!wallet) throw new NotFoundException('Wallet not found');
+      if (wallet.balance < amount)
+        throw new BadRequestException('Insufficient wallet balance');
+
+      const connectId = (user as any).stripeConnectId as string | undefined;
+      if (!connectId)
+        throw new BadRequestException('User does not have a connected account');
+
+      const account = await this.stripe.accounts.retrieve(connectId);
+      const externalAccounts = (account.external_accounts?.data ||
+        []) as unknown as Array<Record<string, unknown>>;
+      const hasBank = externalAccounts.some(
+        (acc: any) => acc?.id === bankAccountId,
+      );
+      if (!hasBank) throw new BadRequestException('Bank account not linked');
+
+      const payout = await this.stripe.payouts.create(
+        {
+          amount: Math.round(amount * 100),
+          currency: currency || 'usd',
+          destination: bankAccountId,
+        } as any,
+        { stripeAccount: connectId },
+      );
+
+      await this.walletModel.findOneAndUpdate(
+        { userId },
+        { $inc: { balance: -amount } },
+      );
+
+      const payment = await this.paymentModel.create({
+        userId,
+        amount,
+        source: PAYMENT_SOURCE.STRIPE,
+        type: PAYMENT_TYPE.WITHDRAWAL,
+        flow: PAYMENT_FLOW.OUTBOUND,
+        typeId: bankAccountId,
+        stripePayoutId: payout.id,
+        destinationBankId: bankAccountId,
+        status: PAYMENT_STATUS.PENDING,
+      });
+
+      return new ReturnType({
+        success: true,
+        message: 'Withdrawal initiated',
+        data: payment,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        error?.message || 'Failed to initiate withdrawal',
+      );
     }
   }
 

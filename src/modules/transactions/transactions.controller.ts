@@ -18,6 +18,9 @@ import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { GetTransactionsDto } from './dto/get-transactions.dto';
 import { CreateAccountLinkDto } from './dto/create-account-link.dto';
+import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
+import { StartSubscriptionDto } from './dto/start-subscription.dto';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
@@ -100,6 +103,38 @@ export class TransactionsController {
   @ApiOkResponse({ description: 'Payment status retrieved' })
   async verifyPayment(@Param('id') id: string): Promise<ReturnType> {
     return this.transactionsService.verifyPayment(id);
+  }
+
+  @Post('subscription/start')
+  @ApiOperation({
+    summary: 'Start a recurring subscription via Stripe Checkout',
+  })
+  @ApiOkResponse({ description: 'Checkout session created' })
+  async startSubscription(
+    @Body() dto: StartSubscriptionDto,
+  ): Promise<ReturnType> {
+    return this.transactionsService.startSubscription(dto);
+  }
+
+  @Post('subscription/cancel')
+  @ApiOperation({ summary: 'Cancel subscription at period end' })
+  @ApiOkResponse({ description: 'Subscription cancellation scheduled' })
+  async cancelSubscription(
+    @Body() dto: CancelSubscriptionDto,
+  ): Promise<ReturnType> {
+    return this.transactionsService.cancelSubscription(dto);
+  }
+
+  @Post('withdraw')
+  @ApiOperation({
+    summary:
+      'Request a withdrawal to a linked bank account (user Stripe connected account required)',
+  })
+  @ApiOkResponse({ description: 'Withdrawal initiated' })
+  async requestWithdrawal(
+    @Body() dto: CreateWithdrawalDto,
+  ): Promise<ReturnType> {
+    return this.transactionsService.requestWithdrawal(dto);
   }
 
   // @Post('customer/:userId')
