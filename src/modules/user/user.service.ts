@@ -199,6 +199,8 @@ export class UserService {
   }
 
   public async enrichUser(user: UserDocument) {
+    this.logger.debug('enrichUser', user);
+    if (!user) return;
     const profilePicture = user?.profilePicture
       ? await this.uploadService.getSignedUrl(user?.profilePicture)
       : null;
