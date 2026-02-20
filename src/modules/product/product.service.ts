@@ -113,7 +113,6 @@ export class ProductService {
       this.productModel.countDocuments({
         businessId,
         isDeleted: false,
-        enabled: true,
       }),
     ]);
 

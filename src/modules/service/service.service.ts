@@ -114,7 +114,6 @@ export class ServiceService {
       this.serviceModel.countDocuments({
         businessId,
         isDeleted: false,
-        enabled: true,
       }),
     ]);
 
