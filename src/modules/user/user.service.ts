@@ -204,11 +204,11 @@ export class UserService {
       : null;
     const business = await this.businessModel.findOne({
       isDeleted: false,
-      userId: user._id,
+      userId: user.toObject()._id,
     });
     return {
       ...user.toJSON(),
-      id: user._id,
+      id: user.toObject()._id,
       profilePicture,
       business,
     };
