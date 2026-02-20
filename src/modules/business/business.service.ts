@@ -224,8 +224,8 @@ export class BusinessService {
       const filter: Record<string, any> = { isDeleted: false };
 
       // Text search across name and location
-      const textFilter = q ? { $text: { $search: q } } : {};
-      const finalFilter = { ...filter, ...textFilter };
+      // const textFilter = q ? { $text: { $search: q } } : {};
+      const finalFilter = { ...filter };
 
       const [data, total] = await Promise.all([
         this.businessModel
