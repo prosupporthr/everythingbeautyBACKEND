@@ -199,8 +199,8 @@ export class UserService {
   }
 
   public async enrichUser(user: UserDocument) {
-    const profilePicture = user.profilePicture
-      ? await this.uploadService.getSignedUrl(user.profilePicture)
+    const profilePicture = user?.profilePicture
+      ? await this.uploadService.getSignedUrl(user?.profilePicture)
       : null;
     const business = await this.businessModel.findOne({
       isDeleted: false,
