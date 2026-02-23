@@ -6,6 +6,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -27,11 +28,24 @@ import { ReturnType } from '@common/classes/ReturnType';
 import { PaginationQueryDto } from '@/modules/business/dto/pagination-query.dto';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { UserAuthCheckGuard } from '@/common/guards/user-auth-check/user-auth-check.guard';
+import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
+import express from 'express';
+import { UserDocument } from '@/schemas/User.schema';
 
 @ApiTags('User')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Get('me')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({ summary: 'Get current authenticated user' })
+  @ApiResponse({ status: 200, description: 'Current user details' })
+  async getCurrentUser(@Req() req: express.Request): Promise<ReturnType> {
+    const user = req['user'] as UserDocument;
+    return this.userService.getUserById(user._id.toString());
+  }
 
   @Get()
   @ApiBearerAuth('JWT-auth')

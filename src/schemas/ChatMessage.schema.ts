@@ -43,6 +43,13 @@ export class ChatMessage extends MetaSchema {
     type: [String],
   })
   files: string[];
+
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: false,
+  })
+  isRead: boolean;
 }
 
 export type ChatMessageDocument = HydratedDocument<ChatMessage>;

@@ -121,4 +121,39 @@ export class MessagingController {
   ): Promise<ReturnType> {
     return this.messagingService.deleteChatMessage(messageId);
   }
+
+  // 8. Mark multiple chat messages as read
+  @Post('messages/mark-read')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({
+    summary: 'Mark multiple chat messages as read by IDs',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        ids: {
+          type: 'array',
+          items: { type: 'string', example: '64f7c2d91c2f4a0012345678' },
+        },
+      },
+      required: ['ids'],
+    },
+  })
+  @ApiOkResponse({ description: 'Messages marked as read' })
+  async markMessagesAsRead(@Body('ids') ids: string[]): Promise<ReturnType> {
+    return this.messagingService.markMessagesAsRead(ids);
+  }
+
+  // 9. Get unread chat message count for a particular chat
+  @Get('chats/:chatId/unread-count')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({
+    summary: 'Get unread chat message count for a chat',
+  })
+  @ApiParam({ name: 'chatId', description: 'Chat ID' })
+  @ApiOkResponse({ description: 'Unread message count fetched' })
+  async getUnreadCount(@Param('chatId') chatId: string): Promise<ReturnType> {
+    return this.messagingService.getUnreadCount(chatId);
+  }
 }

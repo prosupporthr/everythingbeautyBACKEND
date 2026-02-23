@@ -1,11 +1,12 @@
 import {
+  Body,
   Controller,
   Get,
   Patch,
   Param,
+  Post,
   Query,
   UseGuards,
-  Body,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { GetNotificationsDto } from './dto/get-notifications.dto';
+import { BulkMarkReadDto } from './dto/bulk-mark-read.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
@@ -65,5 +67,15 @@ export class NotificationsController {
     @Param('adminId') adminId: string,
   ): Promise<ReturnType> {
     return this.notificationsService.markAsReadForAdmin(id, adminId);
+  }
+
+  @Post('bulk-read')
+  @ApiOperation({
+    summary:
+      'Mark multiple notifications as read for a user or admin (by userType)',
+  })
+  @ApiOkResponse({ description: 'Notifications updated' })
+  async bulkMarkAsRead(@Body() dto: BulkMarkReadDto): Promise<ReturnType> {
+    return this.notificationsService.bulkMarkAsRead(dto);
   }
 }

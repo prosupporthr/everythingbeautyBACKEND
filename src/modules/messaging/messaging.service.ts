@@ -273,6 +273,54 @@ export class MessagingService {
     }
   }
 
+  // 4. Mark multiple chat messages as read by IDs
+  async markMessagesAsRead(ids: string[]): Promise<ReturnType> {
+    try {
+      const validIds = ids.filter((id) => isValidObjectId(id));
+      if (!validIds.length) {
+        throw new BadRequestException('No valid message IDs provided');
+      }
+
+      await this.chatMessageModel.updateMany(
+        { _id: { $in: validIds }, isDeleted: false },
+        { $set: { isRead: true } },
+      );
+
+      return new ReturnType({
+        success: true,
+        message: 'Messages marked as read successfully',
+        data: null,
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  // 5. Get unread chat message count for a particular chat
+  async getUnreadCount(chatId: string): Promise<ReturnType> {
+    try {
+      if (!isValidObjectId(chatId)) {
+        throw new BadRequestException('Invalid chatId');
+      }
+
+      const count = await this.chatMessageModel.countDocuments({
+        chatId: new Types.ObjectId(chatId),
+        isDeleted: false,
+        isRead: false,
+      });
+
+      return new ReturnType({
+        success: true,
+        message: 'Unread message count fetched successfully',
+        data: { count },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
   async getChatById(id: string): Promise<ReturnType> {
     try {
       if (!isValidObjectId(id)) throw new BadRequestException('Invalid chatId');

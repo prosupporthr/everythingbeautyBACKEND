@@ -6,4 +6,3 @@ export class CancelSubscriptionDto {
   @IsMongoId()
   userId: string;
 }
-

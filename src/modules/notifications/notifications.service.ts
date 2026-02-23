@@ -11,6 +11,10 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 import { GetNotificationsDto } from './dto/get-notifications.dto';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
+import {
+  BulkMarkReadDto,
+  NOTIFICATION_USER_TYPE,
+} from './dto/bulk-mark-read.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -170,6 +174,53 @@ export class NotificationsService {
       return new ReturnType({
         success: false,
         message: error.message || 'Failed to mark notification as read',
+        data: null,
+      });
+    }
+  }
+
+  async bulkMarkAsRead(dto: BulkMarkReadDto): Promise<ReturnType> {
+    try {
+      const { ids, userType, adminId } = dto;
+
+      if (!ids?.length) {
+        return new ReturnType({
+          success: true,
+          message: 'No notifications to update',
+          data: null,
+        });
+      }
+
+      if (userType === NOTIFICATION_USER_TYPE.USER) {
+        await this.notificationModel.updateMany(
+          { _id: { $in: ids } },
+          { $set: { isRead: true } },
+        );
+      } else if (userType === NOTIFICATION_USER_TYPE.ADMIN) {
+        if (!adminId) {
+          return new ReturnType({
+            success: false,
+            message: 'adminId is required when userType is admin',
+            data: null,
+          });
+        }
+
+        await this.notificationModel.updateMany(
+          { _id: { $in: ids } },
+          { $addToSet: { readBy: adminId } },
+        );
+      }
+
+      return new ReturnType({
+        success: true,
+        message: 'Notifications updated successfully',
+        data: null,
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        message: error.message || 'Failed to update notifications',
         data: null,
       });
     }
