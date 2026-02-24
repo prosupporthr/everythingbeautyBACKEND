@@ -31,6 +31,17 @@ import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Get paginated list of reviews' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Reviews fetched (paginated)' })
+  async getReviews(
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.reviewService.getReviews(query);
+  }
+
   @Post()
   @ApiOperation({ summary: 'Create a review for a business' })
   @ApiBody({ type: CreateReviewDto })

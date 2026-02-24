@@ -326,6 +326,45 @@ export class ReviewService {
     }
   }
 
+  public async getReviews({
+    page = 1,
+    limit = 10,
+  }: {
+    page?: number;
+    limit?: number;
+  }) {
+    try {
+      const skip = (page - 1) * limit;
+      const [raw, total] = await Promise.all([
+        this.reviewModel
+          .find({ isDeleted: false })
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec(),
+        this.reviewModel.countDocuments({ isDeleted: false }),
+      ]);
+
+      const data = await this.enrichReviews(raw);
+
+      return new PaginatedReturnType({
+        success: true,
+        message: 'Reviews fetched',
+        data,
+        page,
+        total,
+      });
+    } catch (error) {
+      this.logger.error('Error fetching reviews', error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new BadRequestException('What you were trying to do did not work');
+    }
+  }
+
   private async enrichReview(review: ReviewDocument): Promise<any> {
     try {
       const obj =
