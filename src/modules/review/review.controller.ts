@@ -109,4 +109,24 @@ export class ReviewController {
   ): Promise<ReturnType> {
     return this.reviewService.getPendingReviewTargets(userId);
   }
+
+  @Get('has-reviewed/:userId/:businessId')
+  @ApiOperation({ summary: 'Check if user has reviewed a business' })
+  @ApiParam({
+    name: 'userId',
+    description: 'User ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiParam({
+    name: 'businessId',
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({ description: 'Has reviewed result' })
+  async hasReviewed(
+    @Param('userId') userId: string,
+    @Param('businessId') businessId: string,
+  ): Promise<ReturnType> {
+    return this.reviewService.hasReviewed(userId, businessId);
+  }
 }

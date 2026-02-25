@@ -8,11 +8,17 @@ export class CreateOrderDto {
   @IsMongoId()
   userId: string;
 
-  @ApiProperty({ description: 'Business ID', example: '64f7c2d91c2f4a00abcdef12' })
+  @ApiProperty({
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a00abcdef12',
+  })
   @IsMongoId()
   businessId: string;
 
-  @ApiProperty({ description: 'Product ID', example: '64f7c2d91c2f4a00fedcba98' })
+  @ApiProperty({
+    description: 'Product ID',
+    example: '64f7c2d91c2f4a00fedcba98',
+  })
   @IsMongoId()
   productId: string;
 
@@ -28,11 +34,19 @@ export class CreateOrderDto {
   @Min(0)
   totalPrice: number;
 
-  @ApiProperty({ description: 'Payment status', enum: PAYMENT_STATUS, default: PAYMENT_STATUS.PENDING })
+  @ApiProperty({
+    description: 'Payment status',
+    enum: PAYMENT_STATUS,
+    default: PAYMENT_STATUS.PENDING,
+  })
   @IsEnum(PAYMENT_STATUS)
   paymentStatus?: PAYMENT_STATUS = PAYMENT_STATUS.PENDING;
 
-  @ApiProperty({ description: 'Order status', enum: ORDER_STATUS, default: ORDER_STATUS.PENDING })
+  @ApiProperty({
+    description: 'Order status',
+    enum: ORDER_STATUS,
+    default: ORDER_STATUS.PENDING,
+  })
   @IsEnum(ORDER_STATUS)
   status?: ORDER_STATUS = ORDER_STATUS.PENDING;
 }

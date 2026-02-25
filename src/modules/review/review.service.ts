@@ -365,6 +365,29 @@ export class ReviewService {
     }
   }
 
+  public async hasReviewed(userId: string, businessId: string) {
+    try {
+      const review = await this.reviewModel.findOne({
+        userId,
+        businessId,
+        isDeleted: false,
+      });
+      return new ReturnType({
+        success: true,
+        message: 'Review fetched',
+        data: review ? true : false,
+      });
+    } catch (error) {
+      this.logger.error('Error fetching reviews', error);
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new BadRequestException('What you were trying to do did not work');
+    }
+  }
+
   private async enrichReview(review: ReviewDocument): Promise<any> {
     try {
       const obj =
