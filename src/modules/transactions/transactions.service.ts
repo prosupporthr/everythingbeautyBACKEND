@@ -745,12 +745,9 @@ export class TransactionsService {
       throw new BadRequestException('Invalid payment source');
     } catch (error: any) {
       this.logger.error(error);
-      return new ReturnType({
-        success: false,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-        message: error.message || 'Failed to initiate payment',
-        data: null,
-      });
+
+      throw new BadRequestException(error.message || 'Failed to initiate payment');
+   
     }
   }
 
