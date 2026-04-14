@@ -708,8 +708,10 @@ export class TransactionsService {
 
       // 2. Handle Wallet Payment
       if (source === PAYMENT_SOURCE.WALLET) {
-        const wallet = await this.walletModel.findOne({ userId });
-        if (!wallet) throw new NotFoundException('Wallet not found');
+        const hasWallet = await this.getWallet(user._id.toString());
+        if (!hasWallet.success) throw new NotFoundException('Wallet not found');
+
+        const wallet = hasWallet.data;
 
         if (wallet.balance < amount) {
           throw new BadRequestException('Insufficient wallet balance');
