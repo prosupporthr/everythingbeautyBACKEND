@@ -24,6 +24,7 @@ import { AddressModule } from './modules/address/address.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ShipmentModule } from './modules/shipment/shipment.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -99,6 +100,7 @@ const logger = new Logger('AppModule');
     AnalyticsModule,
     RolesModule,
     NotificationsModule,
+    ShipmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
