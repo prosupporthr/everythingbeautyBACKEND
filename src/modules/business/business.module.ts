@@ -15,6 +15,7 @@ import { UserModule } from '../user/user.module';
 import { Admin, AdminSchema } from '@/schemas/Admin.schema';
 import { EmailService } from '@/common/services/email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { Product, ProductSchema } from '@/schemas/Product.schema';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
       { name: Service.name, schema: ServiceSchema },
       { name: Otp.name, schema: OtpSchema },
       { name: Admin.name, schema: AdminSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
     NotificationsModule,
     UserModule,

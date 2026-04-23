@@ -11,7 +11,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { AUTH_TYPE, User, UserDocument } from '@schemas/User.schema';
+import { AUTH_TYPE, PAYMENT_PLAN, User, UserDocument } from '@schemas/User.schema';
 import { ReturnType } from '@common/classes/ReturnType';
 import { SignupEmailDto } from './dto/signup-email.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -145,6 +145,11 @@ export class UserService {
       const normalizedEmail = email.toLowerCase();
       const user = await this.userModel.findOne({ email: normalizedEmail });
       if (!user) throw new NotFoundException('User not found');
+
+      if (user.isDeleted) {
+        // get the users business
+        throw new BadRequestException('Account not found!');
+      }
 
       await this.otpService.createOtp({
         userId: String(user._id),
