@@ -110,9 +110,11 @@ export class CreateShipmentDto {
     @IsNotEmptyObject()
     address_to: ShipmentAddress;
 
-    @ApiProperty()
+    @ApiProperty({
+        type: [Parcel]
+    })
     @Type(() => Array<Parcel>)
     @IsArray()
     @IsNotEmpty()
-    parcel: Array<Parcel>
+    parcels: Array<Parcel>
 }
