@@ -7,7 +7,7 @@ export class ShippoController {
     async trackingWebHook(@Body() body: any) {
         this.logger.debug('WEBHOOK BODY');
         this.logger.debug(body);
-        console.log(body);
+        // console.log(body);
 
         return Response.json({ message: 'Success' });
     }
