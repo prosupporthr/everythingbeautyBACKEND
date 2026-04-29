@@ -25,6 +25,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ShipmentModule } from './modules/shipment/shipment.module';
+import { ShippoService } from './common/services/shippo/shippo.service';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -77,7 +79,6 @@ const logger = new Logger('AppModule');
         },
       ],
     }),
-    HttpModule,
     UserModule,
     BusinessModule,
     ServiceModule,
@@ -101,8 +102,9 @@ const logger = new Logger('AppModule');
     RolesModule,
     NotificationsModule,
     ShipmentModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ShippoService],
 })
 export class AppModule {}

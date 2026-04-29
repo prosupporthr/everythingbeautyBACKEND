@@ -8,9 +8,15 @@ export class Shipment extends MetaSchema {
   @Prop({
     required: false,
     type: SchemaTypes.ObjectId,
-    ref: 'User',
+    ref: 'Order',
   })
   orderId: string;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
+  shippoObjectId: string;
 
   @Prop({
     required: false,
