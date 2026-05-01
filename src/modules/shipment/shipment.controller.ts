@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags, ApiOkResponse, ApiBody } from '@n
 import { ShipmentService } from './shipment.service';
 import { CreateShipmentDto } from '@/common/services/shippo/dto/CreateShippmentDto';
 import { AuthGuard } from '@/common/guards/auth/auth.guard';
+import { CreateShipmentPayloadDto } from './dto/CreateShipmentPayloadDto';
 
 @ApiBearerAuth('JWT-auth')
 @ApiTags('Shipment')
@@ -13,11 +14,11 @@ export class ShipmentController {
   @Post(':orderId')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Create a shipment for an order' })
-  @ApiBody({ type: CreateShipmentDto })
+  @ApiBody({ type: CreateShipmentPayloadDto })
   @ApiOkResponse({ description: 'Shipment created successfully' })
   async createShipment(
     @Param('orderId') orderId: string,
-    @Body() dto: CreateShipmentDto,
+    @Body() dto: CreateShipmentPayloadDto,
   ) {
     return this.shipmentService.createShipment(orderId, dto);
   }
