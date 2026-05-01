@@ -49,6 +49,13 @@ export class TransactionsController {
     return this.transactionsService.getWallet(userId);
   }
 
+  @Get('escrows/:userId')
+  @ApiOperation({ summary: 'Get user escrow balance' })
+  @ApiOkResponse({ description: 'Escrow balance retrieved' })
+  async getUserEscrows(@Param('userId') userId: string): Promise<ReturnType> {
+    return this.transactionsService.getUserEscrows(userId);
+  }
+
   @Get('connect/status/:userId')
   @ApiOperation({ summary: 'Check stripe connected account status' })
   @ApiOkResponse({ description: 'Account status retrieved' })

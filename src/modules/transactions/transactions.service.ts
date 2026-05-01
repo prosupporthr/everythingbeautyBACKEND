@@ -45,6 +45,7 @@ import { PaginatedReturnType } from '@/common/classes/PaginatedReturnType';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import { StartSubscriptionDto } from './dto/start-subscription.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { Escrow, ESCROW_STATUS, EscrowDocument } from '@/schemas/Escrow.schema';
 
 @Injectable()
 export class TransactionsService {
@@ -60,6 +61,7 @@ export class TransactionsService {
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
+    @InjectModel(Escrow.name) private escrowModel: Model<EscrowDocument>,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -837,13 +839,31 @@ export class TransactionsService {
             $inc: { quantity: -order.quantity },
           });
           const business = await this.businessModel.findById(order.businessId);
-          if (business) {
-            await this.walletModel.findOneAndUpdate(
-              { userId: business.userId },
-              { $inc: { balance: payment.amount } },
-              { upsert: true },
-            );
-          }
+          // create ESCROW PAYMENT
+          const escrow = await this.escrowModel.findOne({
+            orderId: order._id,
+          });
+          if (!order) return;
+
+          const businessWallet = await this.walletModel.findById(
+            business?.userId,
+          );
+
+          // create escrow payment for business
+          await this.escrowModel.create({
+            userId: business?.userId,
+            orderId: order._id,
+            businessWalletId: businessWallet?._id,
+            amount: payment.amount,
+            status: ESCROW_STATUS.PENDING,
+          });
+          // if (business) {
+          //   await this.walletModel.findOneAndUpdate(
+          //     { userId: business.userId },
+          //     { $inc: { balance: payment.amount } },
+          //     { upsert: true },
+          //   );
+          // }
         }
         break;
       }
@@ -863,5 +883,15 @@ export class TransactionsService {
       case PAYMENT_TYPE.WITHDRAWAL:
         break;
     }
+  }
+
+  async getUserEscrows(userId: string) {
+    const escrows = await this.escrowModel.find({ userId, status: ESCROW_STATUS.PENDING });
+    const total = escrows.reduce((acc, cur) => acc + cur.amount, 0);
+    return new ReturnType({
+      success: true,
+      message: 'User escrow balance',
+      data: { total },
+    });
   }
 }
