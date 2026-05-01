@@ -86,6 +86,7 @@ export class ShipmentService {
                 success: true,
             });
         } catch (error) {
+            console.log(error);
             if (error instanceof NotFoundException || error instanceof BadRequestException) {
                 throw error;
             }
@@ -102,6 +103,7 @@ export class ShipmentService {
                 success: true,
             })
         } catch (error) {
+            console.log(error);
             throw new BadRequestException(error);
         }
     }

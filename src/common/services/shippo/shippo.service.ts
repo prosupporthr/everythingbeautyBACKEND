@@ -31,6 +31,7 @@ export class ShippoService {
             const request = await this.axios?.post(`shipments`, payload);
             return request?.data;
         } catch (error) {
+            console.log('SHIPPO ERROR', error);
             return error;
         }
     }
