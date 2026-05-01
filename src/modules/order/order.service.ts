@@ -17,6 +17,7 @@ import { ProductService } from '../product/product.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '@/common/services/email/email.service';
 import { Shipment, ShipmentDocument } from '@/schemas/Shipment.schema';
+import { Address, AddressDocument } from '@/schemas/Address.schema';
 
 @Injectable()
 export class OrderService {
@@ -28,6 +29,8 @@ export class OrderService {
     @InjectModel(Shipment.name) private readonly shipmentModel: Model<ShipmentDocument>,
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
+    @InjectModel(Address.name)
+    private readonly addressModel: Model<AddressDocument>,
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
     private userService: UserService,
@@ -199,10 +202,11 @@ export class OrderService {
 
   private async enrichOrder(order: OrderDocument) {
     try {
-      const [user, product, business, shipment] = await Promise.all([
+      const [user, product, business, address, shipment] = await Promise.all([
         this.userModel.findById(order.userId),
         this.productModel.findById(order.productId),
         this.businessModel.findById(order.businessId),
+        this.addressModel.findById(order.addressId),
         this.shipmentModel.findOne({ orderId: order._id }),
       ]);
       return {
@@ -211,6 +215,7 @@ export class OrderService {
         product: await this.productService.enrichProduct(product as any),
         business: await this.businessService.enrichedBusiness(business as any),
         shipment,
+        address,
       };
     } catch (error) {
       this.logger.error('Error enriching order', error);

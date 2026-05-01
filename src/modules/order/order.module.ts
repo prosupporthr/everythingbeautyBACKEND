@@ -12,6 +12,7 @@ import { ProductModule } from '../product/product.module';
 import { BusinessModule } from '../business/business.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { Shipment, ShipmentSchema } from '@/schemas/Shipment.schema';
+import { Address, AddressSchema } from '@/schemas/Address.schema';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Shipment, ShipmentSchema } from '@/schemas/Shipment.schema';
       { name: Product.name, schema: ProductSchema },
       { name: Business.name, schema: BusinessSchema },
       { name: Shipment.name, schema: ShipmentSchema },
+      { name: Address.name, schema: AddressSchema },
     ]),
     UserModule,
     ProductModule,
