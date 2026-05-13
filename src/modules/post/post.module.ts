@@ -10,6 +10,7 @@ import { Product, ProductSchema } from '@/schemas/Product.schema';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { UploadService } from '../upload/upload.service';
 import { PostGateway } from './post.gateway';
+import { Admin, AdminSchema } from '@/schemas/Admin.schema';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PostGateway } from './post.gateway';
       { name: Business.name, schema: BusinessSchema },
       { name: Product.name, schema: ProductSchema },
       { name: User.name, schema: UserSchema },
+      { name: Admin.name, schema: AdminSchema },
     ]),
   ],
   controllers: [PostController],
