@@ -27,6 +27,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ShipmentModule } from './modules/shipment/shipment.module';
 import { ShippoService } from './common/services/shippo/shippo.service';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { PostModule } from './modules/post/post.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -103,6 +104,7 @@ const logger = new Logger('AppModule');
     NotificationsModule,
     ShipmentModule,
     WebhooksModule,
+    PostModule,
   ],
   controllers: [AppController],
   providers: [AppService, ShippoService],
