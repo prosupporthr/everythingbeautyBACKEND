@@ -12,6 +12,7 @@ import { Booking, BookingSchema } from '@/schemas/Booking.schema';
 import { Order, OrderSchema } from '@/schemas/Order.schema';
 import { Product, ProductSchema } from '@/schemas/Product.schema';
 import { Business, BusinessSchema } from '@/schemas/Business.schema';
+import { Escrow, EscrowSchema } from '@/schemas/Escrow.schema';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Business, BusinessSchema } from '@/schemas/Business.schema';
       { name: Order.name, schema: OrderSchema },
       { name: Product.name, schema: ProductSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: Escrow.name, schema: EscrowSchema },
     ]),
   ],
   controllers: [TransactionsController, TransactionsWebhookController],

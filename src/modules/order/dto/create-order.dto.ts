@@ -15,6 +15,13 @@ export class CreateOrderDto {
   @IsMongoId()
   businessId: string;
 
+   @ApiProperty({
+    description: 'Business ID',
+    example: '64f7c2d91c2f4a00abcdef12',
+  })
+  @IsMongoId()
+  addressId: string;
+
   @ApiProperty({
     description: 'Product ID',
     example: '64f7c2d91c2f4a00fedcba98',

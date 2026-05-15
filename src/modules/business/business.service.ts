@@ -26,6 +26,7 @@ import { User } from '@/schemas/User.schema';
 import { Service } from '@/schemas/Service.Schema';
 import { UserService } from '../user/user.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { Product } from '@/schemas/Product.schema';
 
 @Injectable()
 export class BusinessService {
@@ -35,6 +36,7 @@ export class BusinessService {
     private readonly businessModel: Model<BusinessDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(Service.name) private readonly serviceModel: Model<Service>,
+    @InjectModel(Product.name) private readonly productModel: Model<Product>,
     private readonly uploadService: UploadService,
     private userService: UserService,
     private notificationsService: NotificationsService,
@@ -127,9 +129,20 @@ export class BusinessService {
       { new: true },
     );
 
-    if (!deleted) {
+     if (!deleted) {
       throw new NotFoundException('Business not found');
     }
+
+    // soft delete services
+    await this.serviceModel.updateMany(
+      { businessId: new Types.ObjectId(id) },
+      { isDeleted: true, enabled: false, deletedAt: new Date().toISOString() },
+    );
+
+    await this.productModel.updateMany(
+      { businessId: new Types.ObjectId(id) },
+      { isDeleted: true, enabled: false, deletedAt: new Date().toISOString() },
+    );
 
     return new ReturnType({
       success: true,

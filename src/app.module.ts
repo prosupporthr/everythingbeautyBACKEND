@@ -24,6 +24,10 @@ import { AddressModule } from './modules/address/address.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ShipmentModule } from './modules/shipment/shipment.module';
+import { ShippoService } from './common/services/shippo/shippo.service';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { PostModule } from './modules/post/post.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -76,7 +80,6 @@ const logger = new Logger('AppModule');
         },
       ],
     }),
-    HttpModule,
     UserModule,
     BusinessModule,
     ServiceModule,
@@ -99,8 +102,11 @@ const logger = new Logger('AppModule');
     AnalyticsModule,
     RolesModule,
     NotificationsModule,
+    ShipmentModule,
+    WebhooksModule,
+    PostModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ShippoService],
 })
 export class AppModule {}

@@ -40,6 +40,13 @@ export class Order extends MetaSchema {
   })
   productId: ObjectId;
 
+    @Prop({
+    required: true,
+    type: SchemaTypes.ObjectId,
+    ref: 'Address',
+  })
+  addressId: ObjectId;
+
   @Prop({
     required: true,
     type: Number,

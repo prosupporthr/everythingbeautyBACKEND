@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsNumber, IsOptional, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ORDER_STATUS, PAYMENT_STATUS } from '@/schemas/Order.schema';
@@ -8,6 +8,13 @@ export class EditOrderDto {
   @IsOptional()
   @IsMongoId()
   productId?: string;
+
+   @ApiProperty({
+      description: 'Business ID',
+      example: '64f7c2d91c2f4a00abcdef12',
+    })
+    @IsMongoId()
+    addressId?: string;
 
   @ApiPropertyOptional({ description: 'Quantity', example: 3 })
   @IsOptional()
