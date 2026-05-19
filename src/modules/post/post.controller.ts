@@ -107,6 +107,36 @@ export class PostController {
     return this.postService.getPostById(id);
   }
 
+   @Get('/likes/:postId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get a post by postID' })
+  @ApiParam({ name: 'postId', description: 'Post ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Post retrieved' })
+  async getPostLikedUsers(
+    @Param('postId') postId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getLikedUsers(postId, query?.page, query?.limit);
+  }
+
+  @Get('/profile/:userId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get a post by ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Post retrieved' })
+  async getPostByUserId(
+    @Param('userId') userId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getPostsByUserId(userId, query);
+  }
+
   @Post(':postId/comment')
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT-auth')
