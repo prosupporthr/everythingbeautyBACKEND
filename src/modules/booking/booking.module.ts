@@ -17,6 +17,7 @@ import { BusinessModule } from '../business/business.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailService } from '@/common/services/email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { Staff, StaffSchema } from '@schemas/Staff.schema';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ConfigService } from '@nestjs/config';
       { name: User.name, schema: UserSchema },
       { name: Service.name, schema: ServiceSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: Staff.name, schema: StaffSchema },
     ]),
     UserModule,
     ServiceModule,

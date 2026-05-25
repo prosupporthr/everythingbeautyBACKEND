@@ -54,6 +54,13 @@ export class Booking extends MetaSchema {
   bookingDate: string;
 
   @Prop({
+    type: String,
+    required: false,
+    trim: true,
+  })
+  staffId: string;
+
+  @Prop({
     required: false,
     type: String,
     enum: PAYMENT_STATUS,

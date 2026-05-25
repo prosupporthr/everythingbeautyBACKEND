@@ -1,16 +1,39 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNumber, Min, IsString } from 'class-validator';
+import {
+  IsMongoId,
+  IsNumber,
+  Min,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 
 export class CreateBookingDto {
-  @ApiProperty({ description: 'User ID making the booking', example: '64f7c2d91c2f4a0012345678' })
+  @ApiProperty({
+    description: 'User ID making the booking',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @IsMongoId()
   userId: string;
 
-  @ApiProperty({ description: 'Business ID where booking is made', example: '64f7c2d91c2f4a0012345678' })
+  @ApiProperty({
+    description: 'Staff ID making the booking',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @IsMongoId()
+  @IsOptional()
+  staffId: string;
+
+  @ApiProperty({
+    description: 'Business ID where booking is made',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @IsMongoId()
   businessId: string;
 
-  @ApiProperty({ description: 'Service ID being booked', example: '64f7c2d91c2f4a0012345678' })
+  @ApiProperty({
+    description: 'Service ID being booked',
+    example: '64f7c2d91c2f4a0012345678',
+  })
   @IsMongoId()
   serviceId: string;
 
@@ -19,7 +42,10 @@ export class CreateBookingDto {
   @Min(0)
   totalPrice: number;
 
-  @ApiProperty({ description: 'Booking date/time (ISO string)', example: '2025-01-01T10:00:00.000Z' })
+  @ApiProperty({
+    description: 'Booking date/time (ISO string)',
+    example: '2025-01-01T10:00:00.000Z',
+  })
   @IsString()
   bookingDate: string;
 }
