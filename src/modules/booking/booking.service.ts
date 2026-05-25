@@ -17,6 +17,7 @@ import { UserService } from '../user/user.service';
 import { ServiceService } from '../service/service.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '@/common/services/email/email.service';
+import { Staff, StaffDocument } from '@schemas/Staff.schema';
 
 @Injectable()
 export class BookingService {
@@ -27,6 +28,8 @@ export class BookingService {
     @InjectModel(Service.name)
     private readonly serviceModel: Model<ServiceDocument>,
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Staff.name)
+    private readonly staffModel: Model<StaffDocument>,
     private userService: UserService,
     private serviceService: ServiceService,
     private notificationsService: NotificationsService,
@@ -41,6 +44,7 @@ export class BookingService {
         serviceId: dto.serviceId,
         totalPrice: dto.totalPrice,
         bookingDate: dto.bookingDate,
+        staffId: dto?.staffId ?? null,
       });
       const enrichedBooking = await this.endrichBooking(booking);
 
@@ -153,10 +157,65 @@ export class BookingService {
     });
   }
 
+  public async transferBooking(
+    bookingId: string,
+    newStaffId: string,
+  ): Promise<ReturnType> {
+    try {
+      const booking = await this.bookingModel.findOne({
+        _id: bookingId,
+        isDeleted: false,
+      });
+
+      if (!booking) throw new NotFoundException('Booking not found');
+
+      const currentStaffId = booking.staffId ? booking.staffId.toString() : '';
+      if (currentStaffId === newStaffId) {
+        const enrichedBooking = await this.endrichBooking(booking);
+        return new ReturnType({
+          success: true,
+          message: 'Booking already assigned to this staff',
+          data: enrichedBooking,
+        });
+      }
+
+      booking.staffId = newStaffId;
+      booking.updatedAt = new Date().toISOString();
+      const updatedBooking = await booking.save();
+      const enrichedBooking = await this.endrichBooking(updatedBooking);
+
+      if (enrichedBooking.user?.email) {
+        const staffName = enrichedBooking.staff?.name
+          ? ` Your new staff is ${enrichedBooking.staff.name}.`
+          : '';
+
+        await this.emailService.sendGeneralMail({
+          email: enrichedBooking.user.email,
+          subject: 'Booking Staff Updated',
+          body: `<p>The staff assigned to handle your booking for ${enrichedBooking.service?.name} has been changed.${staffName}</p>`,
+        });
+      }
+
+      return new ReturnType({
+        success: true,
+        message: 'Booking staff updated',
+        data: enrichedBooking,
+      });
+    } catch (error) {
+      this.logger.error(error);
+      if (error instanceof NotFoundException) throw error;
+      throw new BadRequestException(error);
+    }
+  }
+
   private async endrichBooking(booking: BookingDocument) {
     try {
       const service = await this.serviceModel.findById(booking.serviceId);
       const user = await this.userModel.findById(booking.userId);
+      let staff;
+      if (booking?.staffId) {
+        staff = await this.staffModel.findById(booking?.staffId);
+      }
 
       if (!service) throw new NotFoundException('Service not found');
       if (!user) throw new NotFoundException('User not found');
@@ -164,6 +223,8 @@ export class BookingService {
         ...booking.toObject(),
         service: await this.serviceService.enrichService(service),
         user: await this.userService.enrichUser(user),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        staff,
       };
     } catch (error) {
       this.logger.error(error);

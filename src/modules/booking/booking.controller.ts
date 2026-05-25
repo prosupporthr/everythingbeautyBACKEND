@@ -12,6 +12,7 @@ import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { ChangeBookingStatusDto } from './dto/change-booking-status.dto';
 import { BookingBusinessQueryDto } from './dto/booking-business-query.dto';
+import { TransferBookingDto } from './dto/transfer-booking.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
@@ -40,6 +41,18 @@ export class BookingController {
     @Body() dto: ChangeBookingStatusDto,
   ): Promise<ReturnType> {
     return this.bookingService.changeBookingStatus(id, dto);
+  }
+
+  @Patch(':id/transfer')
+  @ApiOperation({ summary: 'Transfer booking to another staff' })
+  @ApiParam({ name: 'id', description: 'Booking ID', example: '64f7c2d91c2f4a0012345678' })
+  @ApiBody({ type: TransferBookingDto })
+  @ApiOkResponse({ description: 'Booking staff updated' })
+  async transferBooking(
+    @Param('id') id: string,
+    @Body() { newStaffId }: TransferBookingDto,
+  ): Promise<ReturnType> {
+    return this.bookingService.transferBooking(id, newStaffId);
   }
 
   @Get(':id')
