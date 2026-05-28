@@ -257,7 +257,7 @@ export class PostService {
     });
   }
 
-  async toggleLike(postId: string, userId: string): Promise<number> {
+  async toggleLike(postId: string, userId: string) {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -287,7 +287,9 @@ export class PostService {
       throw new NotFoundException('Post not found');
     }
 
-    return Array.isArray(updated.likes) ? updated.likes.length : 0;
+    const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
+
+    return Array.isArray(updated.likes) ? { hasLiked, likes: updated.likes.length } : { hasLiked, likes: 0 };
   }
 
   public async getLikedUsers(postId: string, page: number = 1, limit: number = 10): Promise<PaginatedReturnType> {

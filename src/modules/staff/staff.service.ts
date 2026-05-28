@@ -12,6 +12,7 @@ import { CreateStaffDto } from '@modules/staff/dto/Create-staff-dto';
 import { Business, BusinessDocument } from '@schemas/Business.schema';
 import { User, UserDocument } from '@schemas/User.schema';
 import { ReturnType } from '@common/classes/ReturnType';
+import { UpdateStaffDto } from './dto/Update-staff-dto';
 
 @Injectable()
 export class StaffService {
@@ -47,6 +48,12 @@ export class StaffService {
         businessId: businessId,
         name: staff.name.toLowerCase(),
         image: staff.image as string,
+        email: staff.email.toLowerCase(),
+        address: staff.address,
+        porfolioLink: staff.porfolioLink,
+        primarySpeciality: staff.primarySpeciality,
+        yearsOfExperience: staff.yearsOfExperience,
+        skills: staff.skills as string[],
       });
 
       await newstaff.save();
@@ -62,30 +69,85 @@ export class StaffService {
     }
   }
 
-  public async getBusinessStaff(businessId: string) {
+  public async updateStaff(id: string, payload: UpdateStaffDto) {
     try {
-      const business = await this.businessModel.findById(businessId);
+      const staff = await this.staffModel.findById(id);
+      if (!staff) {
+        throw new NotFoundException(`Staff with id not found`);
+      }
+
+     if (payload.name) {
+      staff.name = payload.name.toLowerCase();
+     }
+     if (payload.email) {
+      staff.email = payload.email.toLowerCase();
+     }
+     if (payload.address) {
+      staff.address = payload.address.toLowerCase();
+     }
+     if (payload.porfolioLink) {
+      staff.porfolioLink = payload.porfolioLink.toLowerCase();
+     }
+     if (payload.primarySpeciality) {
+      staff.primarySpeciality = payload.primarySpeciality.toLowerCase();
+     }
+     if (payload.yearsOfExperience) {
+      staff.yearsOfExperience = payload.yearsOfExperience;
+     }
+     if (payload.skills) {
+      staff.skills = payload.skills as string[];
+     }
+     if (payload.image) {
+      staff.image = payload.image as string;
+     }
+
+
+      await staff.save();
+
+      return new ReturnType({
+        data: staff,
+        success: true,
+        message: 'Staff updated successfully',
+      });
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
+  public async softDeleteStaff(id: string, userId: string) {
+    try {
+      const staff = await this.staffModel.findById(id);
+      if (!staff) {
+        throw new NotFoundException(`Staff with id not found`);
+      }
+
+      const business = await this.businessModel.findOne({
+        userId: userId,
+      })
       if (!business) {
         throw new NotFoundException(`Business with id not found`);
       }
 
-      const allStaff = await this.staffModel.find({
-        businessId: businessId,
-        deletedAt: null,
-      });
 
-      const totalStaff = await this.staffModel.countDocuments({
-        businessId: businessId,
-        deletedAt: null,
-      });
+
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      if (staff?.businessId.toString() !== business?._id.toString()) {
+        throw new BadRequestException(
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          `You can not perform this action`,
+        );
+      }
+
+
+
+      staff.deletedAt = new Date().toISOString();
+      staff.isDeleted = true;
+      await staff.save();
 
       return new ReturnType({
         success: true,
-        data: {
-          data: allStaff,
-          total: totalStaff,
-        },
-        message: 'Staff found successfully',
+        message: 'Staff Deleted',
       });
     } catch (error) {
       this.logger.error(error);
@@ -97,9 +159,30 @@ export class StaffService {
     }
   }
 
+  public async getBusinessStaff(businessId: string) {
+    try {
+      const staff = await this.staffModel.find({
+        businessId,
+        isDeleted: false,
+      });
+
+      return new ReturnType({
+        data: staff,
+        success: true,
+        message: 'Business staff fetched',
+      });
+    } catch (error: any) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(error);
+    }
+  }
+
   public async getStaffById(id: string) {
     try {
-      const staff = await this.staffModel.findById(id);
+      const staff = await this.staffModel.findOne({
+        _id: id,
+        isDeleted: false,
+      });
       if (!staff) {
         throw new NotFoundException(`Business with id ${id} not found`);
       }

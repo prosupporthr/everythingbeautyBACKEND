@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -14,6 +24,7 @@ import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 import { UserDocument } from '@/schemas/User.schema';
 import { CreateStaffDto } from './dto/Create-staff-dto';
 import { StaffService } from './staff.service';
+import { UpdateStaffDto } from './dto/Update-staff-dto';
 
 @ApiBearerAuth('JWT-auth')
 @UseGuards(UserAuthGuard)
@@ -64,5 +75,37 @@ export class StaffController {
   @ApiOkResponse({ description: 'Staff fetched' })
   async getStaffById(@Param('id') id: string): Promise<ReturnType> {
     return this.staffService.getStaffById(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update staff by ID' })
+  @ApiParam({
+    name: 'id',
+    description: 'Staff ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiBody({ type: UpdateStaffDto })
+  @ApiOkResponse({ description: 'Staff updated' })
+  async updateStaff(
+    @Param('id') id: string,
+    @Body() dto: UpdateStaffDto,
+  ): Promise<ReturnType> {
+    return this.staffService.updateStaff(id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete staff by ID (soft delete)' })
+  @ApiParam({
+    name: 'id',
+    description: 'Staff ID',
+    example: '64f7c2d91c2f4a0012345678',
+  })
+  @ApiOkResponse({ description: 'Staff deleted' })
+  async deleteStaff(
+    @Param('id') id: string,
+    @Req() req: express.Request,
+  ): Promise<ReturnType> {
+    const user = req['user'] as UserDocument;
+    return this.staffService.softDeleteStaff(id, user.id);
   }
 }
