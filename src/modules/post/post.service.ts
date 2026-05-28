@@ -49,7 +49,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post created',
-      data: await this.enrichPost(created),
+      data: await this.enrichPost(created, userId),
     });
   }
 
@@ -89,7 +89,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post updated',
-      data: await this.enrichPost(post),
+      data: await this.enrichPost(post, userId),
     });
   }
 
@@ -122,7 +122,10 @@ export class PostService {
     });
   }
 
-  async getPosts(query: PaginationQueryDto): Promise<PaginatedReturnType> {
+  async getPosts(
+    query: PaginationQueryDto,
+    currentUserId?: string,
+  ): Promise<PaginatedReturnType> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -136,7 +139,9 @@ export class PostService {
         .limit(limit),
     ]);
 
-    const enriched = await Promise.all(posts.map((p) => this.enrichPost(p)));
+    const enriched = await Promise.all(
+      posts.map((p) => this.enrichPost(p, currentUserId)),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -148,7 +153,11 @@ export class PostService {
   }
 
 
-  async getPostsByUserId(userId: string, query: PaginationQueryDto): Promise<PaginatedReturnType> {
+  async getPostsByUserId(
+    userId: string,
+    query: PaginationQueryDto,
+    currentUserId?: string,
+  ): Promise<PaginatedReturnType> {
     if (!Types.ObjectId.isValid(userId)) {
       throw new BadRequestException('Invalid userId');
     }
@@ -165,7 +174,9 @@ export class PostService {
         .limit(limit),
     ]);
 
-    const enriched = await Promise.all(posts.map((p) => this.enrichPost(p)));
+    const enriched = await Promise.all(
+      posts.map((p) => this.enrichPost(p, currentUserId)),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -176,7 +187,7 @@ export class PostService {
     });
   }
 
-  async getPostById(postId: string): Promise<ReturnType> {
+  async getPostById(postId: string, currentUserId?: string): Promise<ReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -189,7 +200,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post',
-      data: await this.enrichPost(post),
+      data: await this.enrichPost(post, currentUserId),
     });
   }
 
@@ -331,7 +342,10 @@ export class PostService {
     });
   }
 
-  private async enrichPost(post: PostDocument | Record<string, any>) {
+  private async enrichPost(
+    post: PostDocument | Record<string, any>,
+    currentUserId?: string,
+  ) {
     try {
       const obj = typeof (post as any).toObject === 'function' ? (post as any).toObject() : post;
 
@@ -357,6 +371,11 @@ export class PostService {
           : [];
 
       const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
+      const hasLiked =
+        typeof currentUserId === 'string' && currentUserId.length > 0
+          ? Array.isArray(obj.likes) &&
+            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          : false;
       const rest = { ...obj } as Record<string, any>;
       delete rest.likes;
 
@@ -376,6 +395,7 @@ export class PostService {
             }
           : null,
         likeCount,
+        hasLiked,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich post');
