@@ -94,7 +94,8 @@ export class PostGateway {
 
     this.socket.to(`post:${payload.postId}`).emit('post:likeCount', {
       postId: payload.postId,
-      likeCount,
+      likeCount: likeCount.likes,
+      hasLiked: likeCount.hasLiked,
     });
 
     return { postId: payload.postId, likeCount };

@@ -28,6 +28,7 @@ import { ShipmentModule } from './modules/shipment/shipment.module';
 import { ShippoService } from './common/services/shippo/shippo.service';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PostModule } from './modules/post/post.module';
+import { StaffModule } from './modules/staff/staff.module';
 
 const logger = new Logger('AppModule');
 @Module({
@@ -105,6 +106,7 @@ const logger = new Logger('AppModule');
     ShipmentModule,
     WebhooksModule,
     PostModule,
+    StaffModule,
   ],
   controllers: [AppController],
   providers: [AppService, ShippoService],

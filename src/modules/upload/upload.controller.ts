@@ -10,7 +10,7 @@ import {
   HttpStatus,
   UploadedFiles,
 } from '@nestjs/common';
-import { AnyFilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
+import { AnyFilesInterceptor, FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -29,7 +29,7 @@ export class UploadController {
 
   @Post('file')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FilesInterceptor('file'))
   @ApiOperation({
     summary: 'Upload a file to S3',
     description:
@@ -51,9 +51,9 @@ export class UploadController {
     },
   })
   async uploadFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
   ): Promise<ReturnType> {
-    return await this.uploadService.uploadFile(file);
+    return await this.uploadService.uploadFile(files);
   }
 
   @Delete('file/:key')

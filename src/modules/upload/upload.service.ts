@@ -1,5 +1,5 @@
 import { UPLOAD_TYPE } from '@/common/enums/uploadTypeEnum';
-import { User, UserDocument } from '@/schemas/User.schema';
+import { UserDocument } from '@/schemas/User.schema';
 import {
   BadRequestException,
   Injectable,
@@ -52,11 +52,36 @@ export class UploadService {
   }
 
   async uploadFile(
-    file: Express.Multer.File,
+    file: Express.Multer.File | Express.Multer.File[],
     folder: string = 'uploads',
   ): Promise<ReturnType> {
     try {
-      const key = `uploads/${file.originalname}`;
+      if (Array.isArray(file)) {
+        const keys = await Promise.all(
+          file.map(async (item) => {
+            const key = `${folder}/${item.originalname}`;
+            this.logger.log('this is the uploaded filename', key);
+
+            const params: AWS.S3.PutObjectRequest = {
+              Bucket: this.bucket,
+              Key: key,
+              Body: item.buffer,
+              ContentType: item.mimetype,
+              ACL: 'public-read',
+            };
+
+            await this.s3.putObject(params).promise();
+            return key;
+          }),
+        );
+
+        return new ReturnType({
+          message: '',
+          success: true,
+          data: { urls: keys },
+        });
+      }
+      const key = `${folder}/${file.originalname}`;
       this.logger.log('this is the uploaded filename', key);
 
       const params: AWS.S3.PutObjectRequest = {

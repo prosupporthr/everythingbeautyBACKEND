@@ -93,8 +93,14 @@ export class PostController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiOkResponse({ description: 'Posts retrieved' })
-  async getPosts(@Query() query: PaginationQueryDto): Promise<PaginatedReturnType> {
-    return this.postService.getPosts(query);
+  async getPosts(
+    @CurrentUser() user: User,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getPosts(
+      query,
+      (user as unknown as UserDocument)._id.toString(),
+    );
   }
 
   @Get(':id')
@@ -103,8 +109,49 @@ export class PostController {
   @ApiOperation({ summary: 'Get a post by ID' })
   @ApiParam({ name: 'id', description: 'Post ID' })
   @ApiOkResponse({ description: 'Post retrieved' })
-  async getPostById(@Param('id') id: string): Promise<ReturnType> {
-    return this.postService.getPostById(id);
+  async getPostById(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<ReturnType> {
+    return this.postService.getPostById(
+      id,
+      (user as unknown as UserDocument)._id.toString(),
+    );
+  }
+
+   @Get('/likes/:postId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get a post by postID' })
+  @ApiParam({ name: 'postId', description: 'Post ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Post retrieved' })
+  async getPostLikedUsers(
+    @Param('postId') postId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getLikedUsers(postId, query?.page, query?.limit);
+  }
+
+  @Get('/profile/:userId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get a post by ID' })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Post retrieved' })
+  async getPostByUserId(
+    @CurrentUser() user: User,
+    @Param('userId') userId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getPostsByUserId(
+      userId,
+      query,
+      (user as unknown as UserDocument)._id.toString(),
+    );
   }
 
   @Post(':postId/comment')

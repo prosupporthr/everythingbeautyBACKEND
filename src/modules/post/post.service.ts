@@ -17,6 +17,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
 import { PaginationQueryDto } from '../business/dto/pagination-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class PostService {
@@ -29,6 +30,7 @@ export class PostService {
     @InjectModel(Product.name)
     private readonly productModel: Model<ProductDocument>,
     private readonly uploadService: UploadService,
+    private userService: UserService,
   ) {}
 
   async createPost(userId: string, dto: CreatePostDto): Promise<ReturnType> {
@@ -47,7 +49,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post created',
-      data: await this.enrichPost(created),
+      data: await this.enrichPost(created, userId),
     });
   }
 
@@ -87,7 +89,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post updated',
-      data: await this.enrichPost(post),
+      data: await this.enrichPost(post, userId),
     });
   }
 
@@ -120,7 +122,10 @@ export class PostService {
     });
   }
 
-  async getPosts(query: PaginationQueryDto): Promise<PaginatedReturnType> {
+  async getPosts(
+    query: PaginationQueryDto,
+    currentUserId?: string,
+  ): Promise<PaginatedReturnType> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const skip = (page - 1) * limit;
@@ -134,7 +139,9 @@ export class PostService {
         .limit(limit),
     ]);
 
-    const enriched = await Promise.all(posts.map((p) => this.enrichPost(p)));
+    const enriched = await Promise.all(
+      posts.map((p) => this.enrichPost(p, currentUserId)),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -145,7 +152,42 @@ export class PostService {
     });
   }
 
-  async getPostById(postId: string): Promise<ReturnType> {
+
+  async getPostsByUserId(
+    userId: string,
+    query: PaginationQueryDto,
+    currentUserId?: string,
+  ): Promise<PaginatedReturnType> {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid userId');
+    }
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [total, posts] = await Promise.all([
+      this.postModel.countDocuments({ isDeleted: false, userId: new Types.ObjectId(userId) }),
+      this.postModel
+        .find({ isDeleted: false, userId: new Types.ObjectId(userId) })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    const enriched = await Promise.all(
+      posts.map((p) => this.enrichPost(p, currentUserId)),
+    );
+
+    return new PaginatedReturnType({
+      success: true,
+      message: 'Posts',
+      data: enriched,
+      total,
+      page,
+    });
+  }
+
+  async getPostById(postId: string, currentUserId?: string): Promise<ReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -158,7 +200,7 @@ export class PostService {
     return new ReturnType({
       success: true,
       message: 'Post',
-      data: await this.enrichPost(post),
+      data: await this.enrichPost(post, currentUserId),
     });
   }
 
@@ -226,7 +268,7 @@ export class PostService {
     });
   }
 
-  async toggleLike(postId: string, userId: string): Promise<number> {
+  async toggleLike(postId: string, userId: string) {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -256,10 +298,54 @@ export class PostService {
       throw new NotFoundException('Post not found');
     }
 
-    return Array.isArray(updated.likes) ? updated.likes.length : 0;
+    const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
+
+    return Array.isArray(updated.likes) ? { hasLiked, likes: updated.likes.length } : { hasLiked, likes: 0 };
   }
 
-  private async enrichPost(post: PostDocument | Record<string, any>) {
+  public async getLikedUsers(postId: string, page: number = 1, limit: number = 10): Promise<PaginatedReturnType> {
+    if (!Types.ObjectId.isValid(postId)) {
+      throw new BadRequestException('Invalid postId');
+    }
+
+    const skip = (page - 1) * limit;
+    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const total = post?.likes?.length ?? 0;
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    if (!post?.likes || post?.likes.length < 1) {
+      return new PaginatedReturnType({
+      success: true,
+      message: 'Liked users',
+      data: [],
+      total,
+      page,
+    });
+    }
+
+    const users = post?.likes;
+    const pagUsers = users?.slice(skip, skip + limit);
+    const enriched = await Promise.all(pagUsers.map(async (u) => {
+      const user = await this.userService.getUserById(u.toString());
+      return user?.data;
+    }));
+
+    return new PaginatedReturnType({
+      success: true,
+      message: 'Liked users',
+      data: enriched,
+      total,
+      page,
+    });
+  }
+
+  private async enrichPost(
+    post: PostDocument | Record<string, any>,
+    currentUserId?: string,
+  ) {
     try {
       const obj = typeof (post as any).toObject === 'function' ? (post as any).toObject() : post;
 
@@ -285,6 +371,11 @@ export class PostService {
           : [];
 
       const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
+      const hasLiked =
+        typeof currentUserId === 'string' && currentUserId.length > 0
+          ? Array.isArray(obj.likes) &&
+            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          : false;
       const rest = { ...obj } as Record<string, any>;
       delete rest.likes;
 
@@ -304,6 +395,7 @@ export class PostService {
             }
           : null,
         likeCount,
+        hasLiked,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich post');
