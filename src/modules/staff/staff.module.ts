@@ -7,6 +7,7 @@ import { Business, BusinessSchema } from '@schemas/Business.schema';
 import { User, UserSchema } from '@schemas/User.schema';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { UploadService } from '../upload/upload.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { ConfigService } from '@nestjs/config';
     ]),
   ],
   controllers: [StaffController],
-  providers: [StaffService, JwtService, ConfigService],
+  providers: [StaffService, JwtService, ConfigService, UploadService],
 })
 export class StaffModule {}

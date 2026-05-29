@@ -10,9 +10,9 @@ import { Staff, StaffDocument } from '@schemas/Staff.schema';
 import { Model } from 'mongoose';
 import { CreateStaffDto } from '@modules/staff/dto/Create-staff-dto';
 import { Business, BusinessDocument } from '@schemas/Business.schema';
-import { User, UserDocument } from '@schemas/User.schema';
 import { ReturnType } from '@common/classes/ReturnType';
 import { UpdateStaffDto } from './dto/Update-staff-dto';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class StaffService {
@@ -22,7 +22,7 @@ export class StaffService {
     @InjectModel(Staff.name) private readonly staffModel: Model<StaffDocument>,
     @InjectModel(Business.name)
     private readonly businessModel: Model<BusinessDocument>,
-    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly uploadService: UploadService,
   ) {}
   public async CreateStaff(
     businessId: string,
@@ -59,7 +59,7 @@ export class StaffService {
       await newstaff.save();
 
       return new ReturnType({
-        data: newstaff,
+        data: await this.enrichStaff(newstaff),
         success: true,
         message: 'Staff created successfully',
       });
@@ -105,7 +105,7 @@ export class StaffService {
       await staff.save();
 
       return new ReturnType({
-        data: staff,
+        data: await this.enrichStaff(staff),
         success: true,
         message: 'Staff updated successfully',
       });
@@ -167,7 +167,7 @@ export class StaffService {
       });
 
       return new ReturnType({
-        data: staff,
+        data: await this.enrichStaff(staff),
         success: true,
         message: 'Business staff fetched',
       });
@@ -188,7 +188,7 @@ export class StaffService {
       }
 
       return new ReturnType({
-        data: staff,
+        data: await this.enrichStaff(staff),
         success: true,
         message: 'Staff found successfully',
       })
@@ -201,5 +201,20 @@ export class StaffService {
         error: error,
       });
     }
+  }
+
+  private async enrichStaff(staff: StaffDocument | StaffDocument[] | any) {
+    const items = Array.isArray(staff) ? staff : [staff];
+    const enriched = await Promise.all(
+      items.map(async (s) => {
+        const obj = typeof s?.toObject === 'function' ? s.toObject() : s;
+        const image = obj?.image
+          ? ((await this.uploadService.getSignedUrl(obj.image)) as string)
+          : obj?.image ?? null;
+        return { ...obj, image };
+      }),
+    );
+
+    return Array.isArray(staff) ? enriched : enriched[0];
   }
 }
