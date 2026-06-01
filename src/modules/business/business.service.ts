@@ -129,7 +129,7 @@ export class BusinessService {
       { new: true },
     );
 
-     if (!deleted) {
+    if (!deleted) {
       throw new NotFoundException('Business not found');
     }
 
@@ -235,7 +235,14 @@ export class BusinessService {
     try {
       this.logger.log('getFilteredBusinesses', { page, limit, q });
       const skip = (page - 1) * limit;
-      const filter: Record<string, any> = { isDeleted: false };
+      let filter: Record<string, any> = { isDeleted: false };
+
+      if (q) {
+        filter = {
+          ...filter,
+          name: { $regex: q, $options: 'i' },
+        };
+      }
 
       // Text search across name and location
       // const textFilter = q ? { $text: { $search: q } } : {};

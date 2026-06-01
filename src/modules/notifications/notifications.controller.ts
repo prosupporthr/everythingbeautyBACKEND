@@ -47,6 +47,13 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id);
   }
 
+  @Get('user/:userId/unread')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({ summary: 'Get user unread count' })
+  async getUnReadCount(@Param('userId') id: string): Promise<ReturnType> {
+    return this.notificationsService.getUserNotificationCount(id);
+  }
+
   @Get('admin/:adminId')
   @UseGuards(AdminAuthGuard)
   @ApiOperation({ summary: 'Get notifications for admin' })

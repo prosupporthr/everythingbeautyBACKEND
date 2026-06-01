@@ -82,6 +82,28 @@ export class NotificationsService {
     }
   }
 
+  async getUserNotificationCount(userId: string) {
+    try {
+      const notificationCount = await this.notificationModel.countDocuments({
+        userId,
+        isForAdmin: false,
+        isRead: false,
+      });
+      return new ReturnType({
+        success: true,
+        data: notificationCount,
+        message: 'Notifications retrieved successfully',
+      });
+    } catch (error) {
+      this.logger.error(error);
+      return new ReturnType({
+        success: false,
+        message: error?.message || 'Failed to get user count',
+        data: null
+      })
+    }
+  }
+
   async markAsRead(id: string): Promise<ReturnType> {
     try {
       const notification = await this.notificationModel.findByIdAndUpdate(
