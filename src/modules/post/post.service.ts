@@ -65,7 +65,10 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -80,7 +83,7 @@ export class PostService {
       post.productId =
         dto.productId === null || dto.productId === ''
           ? undefined
-          : new Types.ObjectId(dto.productId as string);
+          : new Types.ObjectId(dto.productId);
     }
     post.updatedAt = new Date().toISOString();
 
@@ -101,13 +104,18 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
     if (post.userId?.toString() !== userId) {
-      throw new ForbiddenException('You do not have access to delete this post');
+      throw new ForbiddenException(
+        'You do not have access to delete this post',
+      );
     }
 
     post.isDeleted = true;
@@ -152,7 +160,6 @@ export class PostService {
     });
   }
 
-
   async getPostsByUserId(
     userId: string,
     query: PaginationQueryDto,
@@ -166,7 +173,10 @@ export class PostService {
     const skip = (page - 1) * limit;
 
     const [total, posts] = await Promise.all([
-      this.postModel.countDocuments({ isDeleted: false, userId: new Types.ObjectId(userId) }),
+      this.postModel.countDocuments({
+        isDeleted: false,
+        userId: new Types.ObjectId(userId),
+      }),
       this.postModel
         .find({ isDeleted: false, userId: new Types.ObjectId(userId) })
         .sort({ createdAt: -1 })
@@ -187,12 +197,18 @@ export class PostService {
     });
   }
 
-  async getPostById(postId: string, currentUserId?: string): Promise<ReturnType> {
+  async getPostById(
+    postId: string,
+    currentUserId?: string,
+  ): Promise<ReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -216,7 +232,10 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -227,6 +246,8 @@ export class PostService {
       userId: new Types.ObjectId(userId),
       postId: new Types.ObjectId(postId),
       likes: [],
+      isReply: dto?.isReply ?? false,
+      commentId: dto?.commentId ?? null,
     });
 
     return new ReturnType({
@@ -257,7 +278,9 @@ export class PostService {
         .limit(limit),
     ]);
 
-    const enriched = await Promise.all(comments.map((c) => this.enrichComment(c)));
+    const enriched = await Promise.all(
+      comments.map((c) => this.enrichComment(c)),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -300,16 +323,25 @@ export class PostService {
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
 
-    return Array.isArray(updated.likes) ? { hasLiked, likes: updated.likes.length } : { hasLiked, likes: 0 };
+    return Array.isArray(updated.likes)
+      ? { hasLiked, likes: updated.likes.length }
+      : { hasLiked, likes: 0 };
   }
 
-  public async getLikedUsers(postId: string, page: number = 1, limit: number = 10): Promise<PaginatedReturnType> {
+  public async getLikedUsers(
+    postId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
 
     const skip = (page - 1) * limit;
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     const total = post?.likes?.length ?? 0;
 
     if (!post) {
@@ -318,20 +350,22 @@ export class PostService {
 
     if (!post?.likes || post?.likes.length < 1) {
       return new PaginatedReturnType({
-      success: true,
-      message: 'Liked users',
-      data: [],
-      total,
-      page,
-    });
+        success: true,
+        message: 'Liked users',
+        data: [],
+        total,
+        page,
+      });
     }
 
     const users = post?.likes;
     const pagUsers = users?.slice(skip, skip + limit);
-    const enriched = await Promise.all(pagUsers.map(async (u) => {
-      const user = await this.userService.getUserById(u.toString());
-      return user?.data;
-    }));
+    const enriched = await Promise.all(
+      pagUsers.map(async (u) => {
+        const user = await this.userService.getUserById(u.toString());
+        return user?.data;
+      }),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -347,7 +381,10 @@ export class PostService {
     currentUserId?: string,
   ) {
     try {
-      const obj = typeof (post as any).toObject === 'function' ? (post as any).toObject() : post;
+      const obj =
+        typeof (post as any).toObject === 'function'
+          ? (post as any).toObject()
+          : post;
 
       const [business, product] = await Promise.all([
         this.businessModel
@@ -362,12 +399,16 @@ export class PostService {
         : [];
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(business.pictures)) as string[])
+        ? ((await this.uploadService.getSignedUrl(
+            business.pictures,
+          )) as string[])
         : [];
 
       const productPictures =
         product && Array.isArray((product as any).pictures)
-          ? ((await this.uploadService.getSignedUrl((product as any).pictures)) as string[])
+          ? ((await this.uploadService.getSignedUrl(
+              (product as any).pictures,
+            )) as string[])
           : [];
 
       const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
@@ -419,7 +460,9 @@ export class PostService {
         : [];
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(business.pictures)) as string[])
+        ? ((await this.uploadService.getSignedUrl(
+            business.pictures,
+          )) as string[])
         : [];
 
       return {
