@@ -250,10 +250,43 @@ export class PostService {
       commentId: dto?.commentId ?? null,
     });
 
+    await created.save();
+
     return new ReturnType({
       success: true,
       message: 'Comment created',
       data: await this.enrichComment(created),
+    });
+  }
+
+  async getRepliesByCommentId(commentId: string, query: PaginationQueryDto): Promise<PaginatedReturnType> {
+    if (!Types.ObjectId.isValid(commentId)) {
+      throw new BadRequestException('Invalid commentId');
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [total, replies] = await Promise.all([
+      this.commentModel.countDocuments({ commentId, isDeleted: false }),
+      this.commentModel
+        .find({ commentId, isDeleted: false })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    const enriched = await Promise.all(
+      replies.map((c) => this.enrichComment(c)),
+    );
+
+    return new PaginatedReturnType({
+      success: true,
+      message: 'Replies',
+      data: enriched,
+      total,
+      page,
     });
   }
 
@@ -289,6 +322,43 @@ export class PostService {
       total,
       page,
     });
+  }
+
+  async toggleCommentLike(CommentId: string, userId: string) {
+    if (!Types.ObjectId.isValid(CommentId)) {
+      throw new BadRequestException('Invalid CommentId');
+    }
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid userId');
+    }
+
+    const exists = await this.commentModel.exists({
+      _id: CommentId,
+      isDeleted: false,
+      likes: new Types.ObjectId(userId),
+    });
+
+    const update = exists
+      ? { $pull: { likes: new Types.ObjectId(userId) } }
+      : { $addToSet: { likes: new Types.ObjectId(userId) } };
+
+    const updated = await this.commentModel
+      .findOneAndUpdate(
+        { _id: CommentId, isDeleted: false },
+        { ...update, $set: { updatedAt: new Date().toISOString() } },
+        { new: true },
+      )
+      .select('likes');
+
+    if (!updated) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
+
+    return Array.isArray(updated.likes)
+      ? { hasLiked, likes: updated.likes.length }
+      : { hasLiked, likes: 0 };
   }
 
   async toggleLike(postId: string, userId: string) {
