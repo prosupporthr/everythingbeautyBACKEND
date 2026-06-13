@@ -38,6 +38,8 @@ export class UserAuthGuard implements CanActivate {
         'Your are not authorized to carry out this action bearer',
       );
 
+    console.log(token);
+
     // verify token
     const verifiedToken: { id: string; email: string } =
       await this.jwtService.verifyAsync(token, {

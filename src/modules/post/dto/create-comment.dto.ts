@@ -15,7 +15,7 @@ export class CreateCommentDto {
   @ApiProperty({ required: false, example: 'edie392929bdwd' })
   @IsString()
   @IsOptional()
-  commentId: string;
+  commentId?: string;
 
   @ApiProperty({ required: false, example: ['uploads/abc.jpg'] })
   @IsOptional()
