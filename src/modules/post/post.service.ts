@@ -259,7 +259,45 @@ export class PostService {
     });
   }
 
-  async getRepliesByCommentId(commentId: string, query: PaginationQueryDto): Promise<PaginatedReturnType> {
+  async replyComment(
+    commentId: string,
+    userId: string,
+    payload: CreateCommentDto,
+  ) {
+    try {
+      const comment = await this.commentModel.findById(commentId);
+
+      if (!comment) {
+        throw new NotFoundException('Comment not found');
+      }
+
+      const newReply = await this.commentModel.create({
+        commentId: payload.commentId,
+        isReply: true,
+        body: payload.body,
+        images: payload.images ?? [],
+        userId: userId,
+      });
+      const savedReply = newReply.save();
+      const enrichedReply: Comment = await this.enrichComment(savedReply);
+      return new ReturnType({
+        data: enrichedReply,
+        success: true,
+        message: 'Reply created',
+      });
+    } catch (error: unknown) {
+      return new ReturnType({
+        success: false,
+        error,
+        message: 'An error occured',
+      });
+    }
+  }
+
+  async getRepliesByCommentId(
+    commentId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
     if (!Types.ObjectId.isValid(commentId)) {
       throw new BadRequestException('Invalid commentId');
     }
@@ -303,9 +341,9 @@ export class PostService {
     const skip = (page - 1) * limit;
 
     const [total, comments] = await Promise.all([
-      this.commentModel.countDocuments({ postId, isDeleted: false }),
+      this.commentModel.countDocuments({ postId: new Types.ObjectId(postId), isDeleted: false }),
       this.commentModel
-        .find({ postId, isDeleted: false })
+        .find({ postId: new Types.ObjectId(postId), isDeleted: false })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

@@ -173,6 +173,24 @@ export class PostController {
     );
   }
 
+  @Post('/comment/reply/:commentId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Comment on a post' })
+  @ApiBody({ type: CreateCommentDto })
+  @ApiOkResponse({ description: 'Comment created' })
+  async replyComment(
+    @CurrentUser() user: User,
+    @Param('commentId') commentId: string,
+    @Body() dto: CreateCommentDto,
+  ): Promise<ReturnType> {
+    return this.postService.replyComment(
+       commentId,
+      (user as unknown as UserDocument)._id.toString(),  
+      dto,
+    );
+  }
+
   @Patch('comment/:commentId/like')
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT-auth')
