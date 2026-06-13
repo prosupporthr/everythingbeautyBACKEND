@@ -573,6 +573,8 @@ export class PostService {
           )) as string[])
         : [];
 
+        const user = await this.userService.getUserById(obj.userId);
+
       return {
         ...obj,
         images: commentImages,
@@ -582,6 +584,7 @@ export class PostService {
               pictures: businessPictures,
             }
           : null,
+        user: user?.data,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich comment');
