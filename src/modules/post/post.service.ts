@@ -484,6 +484,39 @@ export class PostService {
     });
   }
 
+  public async deleteComment(id: string, userId: string) {
+    try {
+      const comment = await this.commentModel.findOne({
+        _id: id,
+        isDeleted: false,
+        userId: new Types.ObjectId(userId),
+      });
+
+      if (!comment) {
+        throw new NotFoundException('Comment not found');
+      }
+
+      // delete all comments and replies
+      await this.commentModel.deleteMany({
+        _id: id,
+        isDeleted: false,
+      });
+
+      // delete replies
+      await this.commentModel.deleteMany({
+        commentId: id,
+        isDeleted: false,
+      });
+
+      return new ReturnType({
+        success: true,
+        message: 'Comment deleted',
+      });
+    } catch (error) {
+      throw new BadRequestException('Failed to delete comment');
+    }
+  }
+
   private async enrichPost(
     post: PostDocument | Record<string, any>,
     currentUserId?: string,
@@ -575,6 +608,13 @@ export class PostService {
 
         const user = await this.userService.getUserById(obj.userId);
 
+        // get replies count
+        const replies = await this.commentModel.countDocuments({
+          commentId: obj._id,
+          isDeleted: false,
+          isReply: true,
+        });
+
       return {
         ...obj,
         images: commentImages,
@@ -585,6 +625,7 @@ export class PostService {
             }
           : null,
         user: user?.data,
+        replies: replies || 0,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich comment');
