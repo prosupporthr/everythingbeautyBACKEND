@@ -279,7 +279,7 @@ export class PostService {
         images: payload.images ?? [],
         userId: userId,
       });
-      const savedReply = newReply.save();
+      const savedReply = await newReply.save();
       const enrichedReply: Comment = await this.enrichComment(savedReply);
       return new ReturnType({
         data: enrichedReply,
@@ -603,7 +603,7 @@ export class PostService {
           )) as string[])
         : [];
 
-        const user = await this.userService.getUserById(obj.userId);
+        const user = await this.userService.getUserById(comment?.userId?.toString());
 
         // get replies count
         const replies = await this.commentModel.countDocuments({

@@ -29,6 +29,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
 import { PaginationQueryDto } from '../business/dto/pagination-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiTags('Post')
 @Controller('post')
@@ -174,7 +175,7 @@ export class PostController {
   }
 
   @Post('/comment/reply/:commentId')
-  @UseGuards(AuthGuard)
+  @UseGuards(UserAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Comment on a post' })
   @ApiBody({ type: CreateCommentDto })
