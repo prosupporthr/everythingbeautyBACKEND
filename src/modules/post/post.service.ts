@@ -486,7 +486,7 @@ export class PostService {
       const comment = await this.commentModel.findOne({
         _id: id,
         isDeleted: false,
-        userId: new Types.ObjectId(userId),
+        userId: userId,
       });
 
       if (!comment) {
@@ -510,7 +510,8 @@ export class PostService {
         message: 'Comment deleted',
       });
     } catch (error) {
-      throw new BadRequestException('Failed to delete comment');
+      console.log(error);
+      throw new BadRequestException('Failed to delete comment', error);
     }
   }
 
