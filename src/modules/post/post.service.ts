@@ -8,6 +8,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -265,7 +266,7 @@ export class PostService {
     payload: CreateCommentDto,
   ) {
     try {
-      const comment = await this.commentModel.findById(commentId);
+      const comment = await this.commentModel.findById(new Types.ObjectId(commentId));
 
       if (!comment) {
         throw new NotFoundException('Comment not found');
@@ -286,11 +287,7 @@ export class PostService {
         message: 'Reply created',
       });
     } catch (error: unknown) {
-      return new ReturnType({
-        success: false,
-        error,
-        message: 'An error occured',
-      });
+      throw new InternalServerErrorException('Failed to create reply', error as any);
     }
   }
 
