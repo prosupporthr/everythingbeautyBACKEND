@@ -236,4 +236,20 @@ export class PostController {
   ): Promise<PaginatedReturnType> {
     return this.postService.getPostComments(postId, query);
   }
+
+  @Delete('comment/:commentId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiOkResponse({ description: 'Comment deleted' })
+  async deleteComment(
+    @CurrentUser() user: User,
+    @Param('commentId') commentId: string,
+  ): Promise<ReturnType> {
+    return this.postService.deleteComment(
+      commentId,
+      (user as unknown as UserDocument)._id.toString(),
+    );
+  }
+  
 }
