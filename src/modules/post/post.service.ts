@@ -268,6 +268,9 @@ export class PostService {
     try {
       const comment = await this.commentModel.findById(new Types.ObjectId(commentId));
 
+      console.log('[REPLY PAYLOAD]', payload);
+      console.log('[COMMENT ID]', commentId);
+
       if (!comment) {
         throw new NotFoundException('Comment not found');
       }
