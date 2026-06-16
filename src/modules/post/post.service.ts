@@ -486,23 +486,37 @@ export class PostService {
       const comment = await this.commentModel.findOne({
         _id: id,
         isDeleted: false,
-        userId: userId,
       });
 
       if (!comment) {
         throw new NotFoundException('Comment not found');
       }
 
+
+      if (comment.userId.toString() !== userId) {
+        throw new BadRequestException('Not authorized to delete comment');
+      }
+
       // delete all comments and replies
-      await this.commentModel.deleteMany({
+      await this.commentModel.updateMany({
         _id: id,
         isDeleted: false,
+      }, {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date().toISOString(),
+        }
       });
 
       // delete replies
-      await this.commentModel.deleteMany({
+      await this.commentModel.updateMany({
         commentId: id,
         isDeleted: false,
+      }, {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date().toISOString(),
+        }
       });
 
       return new ReturnType({
