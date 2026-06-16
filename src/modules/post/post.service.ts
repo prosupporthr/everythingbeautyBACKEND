@@ -277,7 +277,7 @@ export class PostService {
         isReply: true,
         body: payload.body,
         images: payload.images ?? [],
-        userId: userId,
+        userId: new Types.ObjectId(userId),
       });
       const savedReply = await newReply.save();
       const enrichedReply: Comment = await this.enrichComment(savedReply);
@@ -491,7 +491,6 @@ export class PostService {
       if (!comment) {
         throw new NotFoundException('Comment not found');
       }
-
 
       if (comment.userId.toString() !== userId) {
         throw new BadRequestException('Not authorized to delete comment');
