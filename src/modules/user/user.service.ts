@@ -125,6 +125,9 @@ export class UserService {
 
   async editUser(id: string, dto: EditUserDto): Promise<ReturnType> {
     try {
+      if (dto.firstName?.trim() === '' || dto.lastName?.trim() === '') {
+        throw new BadRequestException('First name and last name cannot be empty');
+      }
       const user = await this.userModel.findByIdAndUpdate(id, dto, {
         new: true,
       });

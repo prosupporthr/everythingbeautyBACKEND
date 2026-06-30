@@ -51,6 +51,13 @@ export class OtpService {
         if (!user || user === undefined) {
           throw new NotFoundException('User not found!');
         }
+        // update every other OTP for this user to expired
+        await this.otpModel.updateMany({
+          userId,
+          type,
+        }, {
+          expired: true,
+        })
         // generate OTP code
         const otp = this.generateOtpCode();
         // save the OTP

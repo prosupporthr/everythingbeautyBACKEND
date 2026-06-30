@@ -722,6 +722,7 @@ export class TransactionsService {
         wallet.balance -= amount;
         await wallet.save();
 
+        // check the payment type and credit the appropriate account or mark the order/booking as paid
         const payment = await this.paymentModel.create({
           userId,
           amount,
