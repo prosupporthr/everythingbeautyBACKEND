@@ -392,11 +392,13 @@ export class PostService {
       throw new NotFoundException('Comment not found');
     }
 
+    const updatedComment = updated.toObject();
+
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
 
     return Array.isArray(updated.likes)
-      ? { hasLiked, likes: updated.likes.length }
-      : { hasLiked, likes: 0 };
+      ? { ...updatedComment, hasLiked, likes: updated.likes.length }
+      : { ...updatedComment, hasLiked, likes: 0 };
   }
 
   async toggleLike(postId: string, userId: string) {
@@ -430,10 +432,10 @@ export class PostService {
     }
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
-
+    const updatedPost = updated.toObject();
     return Array.isArray(updated.likes)
-      ? { hasLiked, likes: updated.likes.length }
-      : { hasLiked, likes: 0 };
+      ? { ...updatedPost, hasLiked, likes: updated.likes.length }
+      : { ...updatedPost, hasLiked, likes: 0,  };
   }
 
   public async getLikedUsers(
@@ -598,7 +600,7 @@ export class PostService {
     }
   }
 
-  private async enrichComment(comment: CommentDocument | Record<string, any>) {
+  private async enrichComment(comment: CommentDocument | Record<string, any>, currentUserId?: string,) {
     try {
       const obj =
         typeof (comment as any).toObject === 'function'
@@ -629,6 +631,15 @@ export class PostService {
           isReply: true,
         });
 
+         const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
+      const hasLiked =
+        typeof currentUserId === 'string' && currentUserId.length > 0
+          ? Array.isArray(obj.likes) &&
+            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          : false;
+      const rest = { ...obj } as Record<string, any>;
+      delete rest.likes;
+
       return {
         ...obj,
         images: commentImages,
@@ -640,6 +651,8 @@ export class PostService {
           : null,
         user: user?.data,
         replies: replies || 0,
+        likeCount,
+        hasLiked,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich comment');
