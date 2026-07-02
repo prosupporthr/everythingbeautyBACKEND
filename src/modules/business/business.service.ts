@@ -276,8 +276,13 @@ export class BusinessService {
   }
 
   async enrichedBusiness(business: BusinessDocument) {
+    const withHttp = business.toJSON().pictures.filter((img) => img.startsWith('https'));
+    business.pictures = withHttp;
+    const imageThatNeedEnrichment = business.toJSON().pictures.filter(
+      (img) => !img.startsWith('https'),
+    );
     const pictures = await this.uploadService.getSignedUrl(
-      business.toJSON().pictures,
+      imageThatNeedEnrichment.length > 0 ? imageThatNeedEnrichment : [],
     );
     const creator = await this.userModel.findById(business.userId);
     const services = await this.serviceModel.find({
@@ -287,7 +292,7 @@ export class BusinessService {
     const user = await this.userService.enrichUser(creator as any);
     return {
       ...business.toObject(),
-      pictures,
+      pictures: [...pictures, withHttp],
       creator: user,
       services,
     };

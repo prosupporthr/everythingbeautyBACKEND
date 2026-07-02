@@ -163,6 +163,8 @@ export class ServiceService {
   public async enrichService(service: ServiceDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(service.businessId);
+      const picsWithHttp = service.pictures.filter((img) => img.startsWith('https'));
+      service.pictures = picsWithHttp;
       const imageThatNeedEnrichment = service.pictures.filter((img) => !img.startsWith('https'));
       let productImages;
       if (imageThatNeedEnrichment.length > 0) {
@@ -187,7 +189,7 @@ export class ServiceService {
       return {
         ...service.toObject(),
         business: businessData,
-        pictures: productImages,
+        pictures: [...productImages, picsWithHttp],
         hasBookmarked,
       };
     } catch (error) {
