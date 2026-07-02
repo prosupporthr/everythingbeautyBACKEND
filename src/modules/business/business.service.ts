@@ -292,7 +292,7 @@ export class BusinessService {
     const user = await this.userService.enrichUser(creator as any);
     return {
       ...business.toObject(),
-      pictures: [...pictures, withHttp],
+      pictures: [...pictures, ...withHttp],
       creator: user,
       services,
     };
