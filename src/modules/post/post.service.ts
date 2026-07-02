@@ -392,7 +392,11 @@ export class PostService {
       throw new NotFoundException('Comment not found');
     }
 
-    const updatedComment = await this.enrichComment(updated, userId);
+    const comment = await this.commentModel.findById(CommentId);
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    const updatedComment = await this.enrichComment(comment, userId);
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
 
@@ -432,10 +436,14 @@ export class PostService {
     }
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
-    const updatedPost = await this.enrichPost(updated, userId);
+    const post = await this.postModel.findById(postId);
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    const updatedPost = await this.enrichPost(post, userId);
     return Array.isArray(updated.likes)
       ? { ...updatedPost, hasLiked, likes: updated.likes.length }
-      : { ...updatedPost, hasLiked, likes: 0,  };
+      : { ...updatedPost, hasLiked, likes: 0 };
   }
 
   public async getLikedUsers(
