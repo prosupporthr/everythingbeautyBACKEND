@@ -434,7 +434,7 @@ export class PostService {
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
     const updatedPost = updated.toObject();
     return Array.isArray(updated.likes)
-      ? { ...updatedPost hasLiked, likes: updated.likes.length }
+      ? { ...updatedPost, hasLiked, likes: updated.likes.length }
       : { ...updatedPost, hasLiked, likes: 0,  };
   }
 
