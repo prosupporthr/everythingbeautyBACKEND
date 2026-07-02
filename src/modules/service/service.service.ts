@@ -163,7 +163,7 @@ export class ServiceService {
   public async enrichService(service: ServiceDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(service.businessId);
-      const imageThatNeedEnrichment = service.pictures.filter((img) => img.startsWith('https'));
+      const imageThatNeedEnrichment = service.pictures.filter((img) => !img.startsWith('https'));
       let productImages;
       if (imageThatNeedEnrichment.length > 0) {
         productImages = await this.uploadService.getSignedUrl(imageThatNeedEnrichment);
