@@ -533,6 +533,38 @@ export class PostService {
     }
   }
 
+  private async enrichImageList(images: unknown[]): Promise<string[]> {
+    if (!Array.isArray(images)) {
+      return [];
+    }
+
+    const uploadImages = images.filter(
+      (image): image is string =>
+        typeof image === 'string' && image.startsWith('/upload'),
+    );
+
+    if (uploadImages.length === 0) {
+      return images.filter((image): image is string => typeof image === 'string');
+    }
+
+    const signedUrls = (await this.uploadService.getSignedUrl(uploadImages)) as string[];
+    const signedUrlMap = new Map<string, string>();
+
+    uploadImages.forEach((image, index) => {
+      signedUrlMap.set(image, signedUrls[index] ?? image);
+    });
+
+    return images.map((image) => {
+      if (typeof image !== 'string') {
+        return '';
+      }
+
+      return image.startsWith('/upload')
+        ? signedUrlMap.get(image) ?? image
+        : image;
+    });
+  }
+
   private async enrichPost(
     post: PostDocument | Record<string, any>,
     currentUserId?: string,
@@ -551,21 +583,15 @@ export class PostService {
         obj.productId ? this.productModel.findById(obj.productId).lean() : null,
       ]);
 
-      const postImages = Array.isArray(obj.images)
-        ? ((await this.uploadService.getSignedUrl(obj.images)) as string[])
-        : [];
+      const postImages = await this.enrichImageList(obj.images);
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(
-            business.pictures,
-          )) as string[])
+        ? await this.enrichImageList(business.pictures)
         : [];
 
       const productPictures =
         product && Array.isArray((product as any).pictures)
-          ? ((await this.uploadService.getSignedUrl(
-              (product as any).pictures,
-            )) as string[])
+          ? await this.enrichImageList((product as any).pictures)
           : [];
 
       const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
@@ -612,14 +638,10 @@ export class PostService {
         .select('name location pictures rating approved enabled')
         .lean();
 
-      const commentImages = Array.isArray(obj.images)
-        ? ((await this.uploadService.getSignedUrl(obj.images)) as string[])
-        : [];
+      const commentImages = await this.enrichImageList(obj.images);
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(
-            business.pictures,
-          )) as string[])
+        ? await this.enrichImageList(business.pictures)
         : [];
 
         const user = await this.userService.getUserById(comment?.userId?.toString());
