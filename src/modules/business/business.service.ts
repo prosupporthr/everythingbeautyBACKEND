@@ -277,7 +277,7 @@ export class BusinessService {
 
   async enrichedBusiness(business: BusinessDocument) {
     const withHttp = business.toJSON().pictures.filter((img) => img.startsWith('https'));
-    business.pictures = withHttp;
+   
     const imageThatNeedEnrichment = business.toJSON().pictures.filter(
       (img) => !img.startsWith('https'),
     );
