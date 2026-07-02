@@ -165,7 +165,7 @@ export class ServiceService {
       const business = await this.businessModel.findById(service.businessId);
       const picsWithHttp = service.pictures.filter((img) => img.startsWith('https'));
       const imageThatNeedEnrichment = service.pictures.filter((img) => !img.startsWith('https'));
-      let productImages;
+      let productImages: string[] | string = [];
       if (imageThatNeedEnrichment.length > 0) {
         productImages = await this.uploadService.getSignedUrl(imageThatNeedEnrichment);
       } 
@@ -186,7 +186,7 @@ export class ServiceService {
       return {
         ...service.toObject(),
         business: businessData,
-        pictures: [...productImages, ...picsWithHttp],
+        pictures: [...(typeof productImages === 'string' ? [productImages] : productImages), ...picsWithHttp],
         hasBookmarked,
       };
     } catch (error) {
