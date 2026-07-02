@@ -189,7 +189,7 @@ export class ServiceService {
       return {
         ...service.toObject(),
         business: businessData,
-        pictures: [...productImages, picsWithHttp],
+        pictures: [...productImages, ...picsWithHttp],
         hasBookmarked,
       };
     } catch (error) {
