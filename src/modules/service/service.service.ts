@@ -168,9 +168,7 @@ export class ServiceService {
       let productImages;
       if (imageThatNeedEnrichment.length > 0) {
         productImages = await this.uploadService.getSignedUrl(imageThatNeedEnrichment);
-      } else {
-        productImages = service.pictures;
-      }
+      } 
       const businessData = await this.businessService.enrichedBusiness(
         business as any,
       );
