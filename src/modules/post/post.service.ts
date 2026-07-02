@@ -392,7 +392,7 @@ export class PostService {
       throw new NotFoundException('Comment not found');
     }
 
-    const updatedComment = updated.toObject();
+    const updatedComment = await this.enrichComment(updated, userId);
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
 
@@ -401,7 +401,7 @@ export class PostService {
       : { ...updatedComment, hasLiked, likes: 0 };
   }
 
-  async toggleLike(postId: string, userId: string) {
+  async toggleLike(postId: string, userId: string): Promise<Record<string, any>> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -432,7 +432,7 @@ export class PostService {
     }
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
-    const updatedPost = updated.toObject();
+    const updatedPost = await this.enrichPost(updated, userId);
     return Array.isArray(updated.likes)
       ? { ...updatedPost, hasLiked, likes: updated.likes.length }
       : { ...updatedPost, hasLiked, likes: 0,  };
