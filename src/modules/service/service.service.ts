@@ -164,7 +164,6 @@ export class ServiceService {
     try {
       const business = await this.businessModel.findById(service.businessId);
       const picsWithHttp = service.pictures.filter((img) => img.startsWith('https'));
-      service.pictures = picsWithHttp;
       const imageThatNeedEnrichment = service.pictures.filter((img) => !img.startsWith('https'));
       let productImages;
       if (imageThatNeedEnrichment.length > 0) {
