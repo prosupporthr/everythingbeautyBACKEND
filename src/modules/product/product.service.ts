@@ -212,8 +212,10 @@ export class ProductService {
   public async enrichProduct(product: ProductDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(product.businessId);
+      const networkImages = product.pictures.filter((image) => image.startsWith('https'));
+      const imagesToUpload = product.pictures.filter((image) => !image.startsWith('https'));
       const productImages = await this.uploadService.getSignedUrl(
-        product.pictures,
+        imagesToUpload,
       );
       const businessData = await this.businessService.enrichedBusiness(
         business as any,
@@ -233,7 +235,7 @@ export class ProductService {
       return {
         ...product.toObject(),
         business: businessData,
-        pictures: productImages,
+        pictures: [...productImages, ...networkImages],
         hasBookmarked,
       };
     } catch (error) {
