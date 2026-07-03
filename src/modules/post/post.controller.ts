@@ -29,6 +29,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { EditPostDto } from './dto/edit-post.dto';
 import { PaginationQueryDto } from '../business/dto/pagination-query.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 
 @ApiTags('Post')
 @Controller('post')
@@ -173,6 +174,55 @@ export class PostController {
     );
   }
 
+  @Post('/comment/reply/:commentId')
+  @UseGuards(UserAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Comment on a post' })
+  @ApiBody({ type: CreateCommentDto })
+  @ApiOkResponse({ description: 'Comment created' })
+  async replyComment(
+    @CurrentUser() user: User,
+    @Param('commentId') commentId: string,
+    @Body() dto: CreateCommentDto,
+  ): Promise<ReturnType> {
+    return this.postService.replyComment(
+       commentId,
+      (user as unknown as UserDocument)._id.toString(),  
+      dto,
+    );
+  }
+
+  @Patch('comment/:commentId/like')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Toggle like on a comment' })
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiOkResponse({ description: 'Comment like toggled' })
+  async toggleCommentLike(
+    @CurrentUser() user: User,
+    @Param('commentId') commentId: string,
+  ): Promise<{ hasLiked: boolean; likes: number }> {
+    return this.postService.toggleCommentLike(
+      commentId,
+      (user as unknown as UserDocument)._id.toString(),
+    );
+  }
+
+  @Get('comment/:commentId/replies')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get paginated replies for a comment (newest first)' })
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiOkResponse({ description: 'Replies retrieved' })
+  async getRepliesByCommentId(
+    @Param('commentId') commentId: string,
+    @Query() query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    return this.postService.getRepliesByCommentId(commentId, query);
+  }
+
   @Get(':postId/comments')
   @UseGuards(AuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -187,4 +237,20 @@ export class PostController {
   ): Promise<PaginatedReturnType> {
     return this.postService.getPostComments(postId, query);
   }
+
+  @Delete('comment/:commentId')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiParam({ name: 'commentId', description: 'Comment ID' })
+  @ApiOkResponse({ description: 'Comment deleted' })
+  async deleteComment(
+    @CurrentUser() user: User,
+    @Param('commentId') commentId: string,
+  ): Promise<ReturnType> {
+    return this.postService.deleteComment(
+      commentId,
+      (user as unknown as UserDocument)._id.toString(),
+    );
+  }
+  
 }

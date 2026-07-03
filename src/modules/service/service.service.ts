@@ -65,7 +65,7 @@ export class ServiceService {
     });
   }
 
-  async editService(id: string, dto: EditServiceDto): Promise<ReturnType> {
+  async editService(id: string, dto: EditServiceDto): Promise<ReturnType> {  
     const updated = await this.serviceModel.findOneAndUpdate(
       { _id: id, isDeleted: false },
       { ...dto, updatedAt: new Date().toISOString() },
@@ -163,9 +163,12 @@ export class ServiceService {
   public async enrichService(service: ServiceDocument, user?: UserDocument) {
     try {
       const business = await this.businessModel.findById(service.businessId);
-      const productImages = await this.uploadService.getSignedUrl(
-        service.pictures,
-      );
+      const picsWithHttp = service.pictures.filter((img) => img.startsWith('https'));
+      const imageThatNeedEnrichment = service.pictures.filter((img) => !img.startsWith('https'));
+      let productImages: string[] | string = [];
+      if (imageThatNeedEnrichment.length > 0) {
+        productImages = await this.uploadService.getSignedUrl(imageThatNeedEnrichment);
+      } 
       const businessData = await this.businessService.enrichedBusiness(
         business as any,
       );
@@ -183,7 +186,7 @@ export class ServiceService {
       return {
         ...service.toObject(),
         business: businessData,
-        pictures: productImages,
+        pictures: [...(typeof productImages === 'string' ? [productImages] : productImages), ...picsWithHttp],
         hasBookmarked,
       };
     } catch (error) {

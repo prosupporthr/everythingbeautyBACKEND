@@ -38,6 +38,12 @@ export class BookingService {
 
   async createBooking(dto: CreateBookingDto): Promise<ReturnType> {
     try {
+      // check if the date has passed
+      const bookingDate = new Date(dto.bookingDate);
+      const now = new Date();
+      if (bookingDate < now) {
+        throw new BadRequestException('Booking date cannot be in the past');
+      }
       const booking = await this.bookingModel.create({
         userId: dto.userId,
         businessId: dto.businessId,

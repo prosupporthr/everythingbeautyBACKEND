@@ -8,6 +8,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -65,7 +66,10 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -80,7 +84,7 @@ export class PostService {
       post.productId =
         dto.productId === null || dto.productId === ''
           ? undefined
-          : new Types.ObjectId(dto.productId as string);
+          : new Types.ObjectId(dto.productId);
     }
     post.updatedAt = new Date().toISOString();
 
@@ -101,13 +105,18 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
     if (post.userId?.toString() !== userId) {
-      throw new ForbiddenException('You do not have access to delete this post');
+      throw new ForbiddenException(
+        'You do not have access to delete this post',
+      );
     }
 
     post.isDeleted = true;
@@ -152,7 +161,6 @@ export class PostService {
     });
   }
 
-
   async getPostsByUserId(
     userId: string,
     query: PaginationQueryDto,
@@ -166,7 +174,10 @@ export class PostService {
     const skip = (page - 1) * limit;
 
     const [total, posts] = await Promise.all([
-      this.postModel.countDocuments({ isDeleted: false, userId: new Types.ObjectId(userId) }),
+      this.postModel.countDocuments({
+        isDeleted: false,
+        userId: new Types.ObjectId(userId),
+      }),
       this.postModel
         .find({ isDeleted: false, userId: new Types.ObjectId(userId) })
         .sort({ createdAt: -1 })
@@ -187,12 +198,18 @@ export class PostService {
     });
   }
 
-  async getPostById(postId: string, currentUserId?: string): Promise<ReturnType> {
+  async getPostById(
+    postId: string,
+    currentUserId?: string,
+  ): Promise<ReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -216,7 +233,10 @@ export class PostService {
       throw new BadRequestException('Invalid postId');
     }
 
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
@@ -227,12 +247,84 @@ export class PostService {
       userId: new Types.ObjectId(userId),
       postId: new Types.ObjectId(postId),
       likes: [],
+      isReply: dto?.isReply ?? false,
+      commentId: dto?.commentId ?? null,
     });
+
+    await created.save();
 
     return new ReturnType({
       success: true,
       message: 'Comment created',
       data: await this.enrichComment(created),
+    });
+  }
+
+  async replyComment(
+    commentId: string,
+    userId: string,
+    payload: CreateCommentDto,
+  ) {
+    try {
+      const comment = await this.commentModel.findById(new Types.ObjectId(commentId));
+
+      console.log('[REPLY PAYLOAD]', payload);
+      console.log('[COMMENT ID]', commentId);
+
+      if (!comment) {
+        throw new NotFoundException('Comment not found');
+      }
+
+      const newReply = await this.commentModel.create({
+        commentId: payload.commentId,
+        isReply: true,
+        body: payload.body,
+        images: payload.images ?? [],
+        userId: new Types.ObjectId(userId),
+      });
+      const savedReply = await newReply.save();
+      const enrichedReply: Comment = await this.enrichComment(savedReply);
+      return new ReturnType({
+        data: enrichedReply,
+        success: true,
+        message: 'Reply created',
+      });
+    } catch (error: unknown) {
+      throw new InternalServerErrorException('Failed to create reply', error as any);
+    }
+  }
+
+  async getRepliesByCommentId(
+    commentId: string,
+    query: PaginationQueryDto,
+  ): Promise<PaginatedReturnType> {
+    if (!Types.ObjectId.isValid(commentId)) {
+      throw new BadRequestException('Invalid commentId');
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [total, replies] = await Promise.all([
+      this.commentModel.countDocuments({ commentId, isDeleted: false }),
+      this.commentModel
+        .find({ commentId, isDeleted: false })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
+
+    const enriched = await Promise.all(
+      replies.map((c) => this.enrichComment(c)),
+    );
+
+    return new PaginatedReturnType({
+      success: true,
+      message: 'Replies',
+      data: enriched,
+      total,
+      page,
     });
   }
 
@@ -249,15 +341,17 @@ export class PostService {
     const skip = (page - 1) * limit;
 
     const [total, comments] = await Promise.all([
-      this.commentModel.countDocuments({ postId, isDeleted: false }),
+      this.commentModel.countDocuments({ postId: new Types.ObjectId(postId), isDeleted: false }),
       this.commentModel
-        .find({ postId, isDeleted: false })
+        .find({ postId: new Types.ObjectId(postId), isDeleted: false })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
     ]);
 
-    const enriched = await Promise.all(comments.map((c) => this.enrichComment(c)));
+    const enriched = await Promise.all(
+      comments.map((c) => this.enrichComment(c)),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -268,7 +362,50 @@ export class PostService {
     });
   }
 
-  async toggleLike(postId: string, userId: string) {
+  async toggleCommentLike(CommentId: string, userId: string) {
+    if (!Types.ObjectId.isValid(CommentId)) {
+      throw new BadRequestException('Invalid CommentId');
+    }
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid userId');
+    }
+
+    const exists = await this.commentModel.exists({
+      _id: CommentId,
+      isDeleted: false,
+      likes: new Types.ObjectId(userId),
+    });
+
+    const update = exists
+      ? { $pull: { likes: new Types.ObjectId(userId) } }
+      : { $addToSet: { likes: new Types.ObjectId(userId) } };
+
+    const updated = await this.commentModel
+      .findOneAndUpdate(
+        { _id: CommentId, isDeleted: false },
+        { ...update, $set: { updatedAt: new Date().toISOString() } },
+        { new: true },
+      )
+      .select('likes');
+
+    if (!updated) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    const comment = await this.commentModel.findById(CommentId);
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    const updatedComment = await this.enrichComment(comment, userId);
+
+    const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
+
+    return Array.isArray(updated.likes)
+      ? { ...updatedComment, hasLiked, likes: updated.likes.length }
+      : { ...updatedComment, hasLiked, likes: 0 };
+  }
+
+  async toggleLike(postId: string, userId: string): Promise<Record<string, any>> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
@@ -299,17 +436,30 @@ export class PostService {
     }
 
     const hasLiked = updated.likes?.includes(new Types.ObjectId(userId));
-
-    return Array.isArray(updated.likes) ? { hasLiked, likes: updated.likes.length } : { hasLiked, likes: 0 };
+    const post = await this.postModel.findById(postId);
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    const updatedPost = await this.enrichPost(post, userId);
+    return Array.isArray(updated.likes)
+      ? { ...updatedPost, hasLiked, likes: updated.likes.length }
+      : { ...updatedPost, hasLiked, likes: 0 };
   }
 
-  public async getLikedUsers(postId: string, page: number = 1, limit: number = 10): Promise<PaginatedReturnType> {
+  public async getLikedUsers(
+    postId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedReturnType> {
     if (!Types.ObjectId.isValid(postId)) {
       throw new BadRequestException('Invalid postId');
     }
 
     const skip = (page - 1) * limit;
-    const post = await this.postModel.findOne({ _id: postId, isDeleted: false });
+    const post = await this.postModel.findOne({
+      _id: postId,
+      isDeleted: false,
+    });
     const total = post?.likes?.length ?? 0;
 
     if (!post) {
@@ -318,20 +468,22 @@ export class PostService {
 
     if (!post?.likes || post?.likes.length < 1) {
       return new PaginatedReturnType({
-      success: true,
-      message: 'Liked users',
-      data: [],
-      total,
-      page,
-    });
+        success: true,
+        message: 'Liked users',
+        data: [],
+        total,
+        page,
+      });
     }
 
     const users = post?.likes;
     const pagUsers = users?.slice(skip, skip + limit);
-    const enriched = await Promise.all(pagUsers.map(async (u) => {
-      const user = await this.userService.getUserById(u.toString());
-      return user?.data;
-    }));
+    const enriched = await Promise.all(
+      pagUsers.map(async (u) => {
+        const user = await this.userService.getUserById(u.toString());
+        return user?.data;
+      }),
+    );
 
     return new PaginatedReturnType({
       success: true,
@@ -342,12 +494,82 @@ export class PostService {
     });
   }
 
+  public async deleteComment(id: string, userId: string) {
+    try {
+      const comment = await this.commentModel.findOne({
+        _id: id,
+        isDeleted: false,
+      });
+
+      if (!comment) {
+        throw new NotFoundException('Comment not found');
+      }
+
+      if (comment.userId.toString() !== userId) {
+        throw new BadRequestException('Not authorized to delete comment');
+      }
+
+      // delete all comments and replies
+      await this.commentModel.updateMany({
+        _id: id,
+        isDeleted: false,
+      }, {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date().toISOString(),
+        }
+      });
+
+      // delete replies
+      await this.commentModel.updateMany({
+        commentId: id,
+        isDeleted: false,
+      }, {
+        $set: {
+          isDeleted: true,
+          updatedAt: new Date().toISOString(),
+        }
+      });
+
+      return new ReturnType({
+        success: true,
+        message: 'Comment deleted',
+      });
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException('Failed to delete comment', error);
+    }
+  }
+
+  private async enrichImageList(images: string[]): Promise<string[]> {
+    if (!Array.isArray(images)) {
+      return [];
+    }
+
+    const uploadImages = images.filter(
+      (image): image is string =>
+        !image.startsWith('https'),
+    );
+
+    const alreadyEnrichedImages = images.filter((item) => item.startsWith('https'));
+
+    if (uploadImages.length === 0) {
+      return images;
+    }
+
+    const signedUrls = (await this.uploadService.getSignedUrl(uploadImages)) as string[];
+    return [...alreadyEnrichedImages, ...signedUrls];
+  }
+
   private async enrichPost(
     post: PostDocument | Record<string, any>,
     currentUserId?: string,
   ) {
     try {
-      const obj = typeof (post as any).toObject === 'function' ? (post as any).toObject() : post;
+      const obj =
+        typeof (post as any).toObject === 'function'
+          ? (post as any).toObject()
+          : post;
 
       const [business, product] = await Promise.all([
         this.businessModel
@@ -357,17 +579,15 @@ export class PostService {
         obj.productId ? this.productModel.findById(obj.productId).lean() : null,
       ]);
 
-      const postImages = Array.isArray(obj.images)
-        ? ((await this.uploadService.getSignedUrl(obj.images)) as string[])
-        : [];
+      const postImages = await this.enrichImageList(obj.images);
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(business.pictures)) as string[])
+        ? await this.enrichImageList(business.pictures)
         : [];
 
       const productPictures =
         product && Array.isArray((product as any).pictures)
-          ? ((await this.uploadService.getSignedUrl((product as any).pictures)) as string[])
+          ? await this.enrichImageList((product as any).pictures)
           : [];
 
       const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
@@ -402,7 +622,7 @@ export class PostService {
     }
   }
 
-  private async enrichComment(comment: CommentDocument | Record<string, any>) {
+  private async enrichComment(comment: CommentDocument | Record<string, any>, currentUserId?: string,) {
     try {
       const obj =
         typeof (comment as any).toObject === 'function'
@@ -414,13 +634,29 @@ export class PostService {
         .select('name location pictures rating approved enabled')
         .lean();
 
-      const commentImages = Array.isArray(obj.images)
-        ? ((await this.uploadService.getSignedUrl(obj.images)) as string[])
-        : [];
+      const commentImages = await this.enrichImageList(obj.images);
 
       const businessPictures = business?.pictures
-        ? ((await this.uploadService.getSignedUrl(business.pictures)) as string[])
+        ? await this.enrichImageList(business.pictures)
         : [];
+
+        const user = await this.userService.getUserById(comment?.userId?.toString());
+
+        // get replies count
+        const replies = await this.commentModel.countDocuments({
+          commentId: obj._id,
+          isDeleted: false,
+          isReply: true,
+        });
+
+         const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
+      const hasLiked =
+        typeof currentUserId === 'string' && currentUserId.length > 0
+          ? Array.isArray(obj.likes) &&
+            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          : false;
+      const rest = { ...obj } as Record<string, any>;
+      delete rest.likes;
 
       return {
         ...obj,
@@ -431,6 +667,10 @@ export class PostService {
               pictures: businessPictures,
             }
           : null,
+        user: user?.data,
+        replies: replies || 0,
+        likeCount,
+        hasLiked,
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich comment');
