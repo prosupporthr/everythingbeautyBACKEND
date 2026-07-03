@@ -541,36 +541,24 @@ export class PostService {
     }
   }
 
-  private async enrichImageList(images: unknown[]): Promise<string[]> {
+  private async enrichImageList(images: string[]): Promise<string[]> {
     if (!Array.isArray(images)) {
       return [];
     }
 
     const uploadImages = images.filter(
       (image): image is string =>
-        typeof image === 'string' && image.startsWith('/upload'),
+        !image.startsWith('https'),
     );
 
+    const alreadyEnrichedImages = images.filter((item) => item.startsWith('https'));
+
     if (uploadImages.length === 0) {
-      return images.filter((image): image is string => typeof image === 'string');
+      return images;
     }
 
     const signedUrls = (await this.uploadService.getSignedUrl(uploadImages)) as string[];
-    const signedUrlMap = new Map<string, string>();
-
-    uploadImages.forEach((image, index) => {
-      signedUrlMap.set(image, signedUrls[index] ?? image);
-    });
-
-    return images.map((image) => {
-      if (typeof image !== 'string') {
-        return '';
-      }
-
-      return image.startsWith('/upload')
-        ? signedUrlMap.get(image) ?? image
-        : image;
-    });
+    return [...alreadyEnrichedImages, ...signedUrls];
   }
 
   private async enrichPost(
