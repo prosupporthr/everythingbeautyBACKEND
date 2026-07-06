@@ -54,25 +54,6 @@ export class BookingService {
       });
       const enrichedBooking = await this.endrichBooking(booking);
 
-      // Notification to business owner
-      const businessOwnerId = enrichedBooking.service?.business?.creator?.id;
-      if (businessOwnerId) {
-        await this.notificationsService.createNotification({
-          userId: businessOwnerId.toString(),
-          title: 'New Booking Received',
-          description: `You have received a new booking for ${enrichedBooking.service?.name} from ${enrichedBooking.user?.firstName}.`,
-        });
-      }
-
-      // Email to user
-      if (enrichedBooking.user?.email) {
-        await this.emailService.sendGeneralMail({
-          email: enrichedBooking.user.email,
-          subject: 'Booking Confirmation',
-          body: `<p>Thank you for your booking of ${enrichedBooking.service?.name}. Your booking ID is ${enrichedBooking._id.toString()}.</p>`,
-        });
-      }
-
       return new ReturnType({
         success: true,
         message: 'Booking created',
