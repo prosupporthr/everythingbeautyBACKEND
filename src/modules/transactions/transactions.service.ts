@@ -863,6 +863,24 @@ export class TransactionsService {
               } catch (err) {
                 this.logger.error('Failed to send booking notifications', err);
               }
+              try {
+                // Notify the user who created the booking
+                await this.notificationsService.createNotification({
+                  userId: booking.userId?.toString(),
+                  title: 'Booking Payment Received',
+                  description: `Your booking ${booking._id} was successfully paid. Amount: $${payment.amount}`,
+                });
+                const customer = await this.userModel.findById(booking.userId);
+                if (customer && (customer as any).email) {
+                  await this.emailService.sendGeneralMail({
+                    email: (customer as any).email,
+                    subject: 'Booking Payment Successful',
+                    body: `<p>Your booking <strong>${booking._id}</strong> has been paid successfully.</p><p>Amount: $${payment.amount}</p>`,
+                  });
+                }
+              } catch (err) {
+                this.logger.error('Failed to notify booking creator', err);
+              }
             }
           }
         }
@@ -940,6 +958,24 @@ export class TransactionsService {
               }
             } catch (err) {
               this.logger.error('Failed to send order notifications', err);
+            }
+            try {
+              // Notify the user who placed the order
+              await this.notificationsService.createNotification({
+                userId: order.userId?.toString(),
+                title: 'Order Payment Received',
+                description: `Your order ${order._id} was successfully paid. Amount: $${payment.amount}`,
+              });
+              const customer = await this.userModel.findById(order.userId);
+              if (customer && (customer as any).email) {
+                await this.emailService.sendGeneralMail({
+                  email: (customer as any).email,
+                  subject: 'Order Payment Successful',
+                  body: `<p>Your order <strong>${order._id}</strong> has been paid successfully.</p><p>Amount: $${payment.amount}</p>`,
+                });
+              }
+            } catch (err) {
+              this.logger.error('Failed to notify order creator', err);
             }
           }
         } else {
