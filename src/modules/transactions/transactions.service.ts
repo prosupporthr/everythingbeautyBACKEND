@@ -717,9 +717,29 @@ export class TransactionsService {
       // 2. Handle Wallet Payment
       if (source === PAYMENT_SOURCE.WALLET) {
         const session = await this.paymentModel.db.startSession();
-        session.startTransaction();
+        let useTransaction = true;
         try {
-          const hasWallet = await this.getWallet(user._id.toString(), session);
+          session.startTransaction();
+        } catch (error: any) {
+          if (
+            error?.code === 20 ||
+            error?.errmsg?.includes('Transaction numbers are only allowed')
+          ) {
+            useTransaction = false;
+            this.logger.warn(
+              'MongoDB does not support transactions in this deployment. Wallet payment will proceed without a transaction.',
+            );
+          } else {
+            session.endSession();
+            throw error;
+          }
+        }
+
+        try {
+          const hasWallet = await this.getWallet(
+            user._id.toString(),
+            useTransaction ? session : null,
+          );
           if (!hasWallet.success) throw new NotFoundException('Wallet not found');
 
           const wallet = hasWallet.data;
@@ -729,7 +749,11 @@ export class TransactionsService {
           }
 
           wallet.balance -= amount;
-          await wallet.save({ session });
+          if (useTransaction) {
+            await wallet.save({ session });
+          } else {
+            await wallet.save();
+          }
 
           const payment = new this.paymentModel({
             userId,
@@ -740,11 +764,20 @@ export class TransactionsService {
             typeId,
             status: PAYMENT_STATUS.SUCCESS,
           });
-          await payment.save({ session });
+          if (useTransaction) {
+            await payment.save({ session });
+          } else {
+            await payment.save();
+          }
 
-          await this.processSuccessfulPayment(payment, session);
+          await this.processSuccessfulPayment(
+            payment,
+            useTransaction ? session : null,
+          );
 
-          await session.commitTransaction();
+          if (useTransaction) {
+            await session.commitTransaction();
+          }
           session.endSession();
 
           return new ReturnType({
@@ -756,7 +789,9 @@ export class TransactionsService {
             },
           });
         } catch (error) {
-          await session.abortTransaction();
+          if (useTransaction) {
+            await session.abortTransaction();
+          }
           session.endSession();
           throw error;
         }
@@ -894,6 +929,8 @@ export class TransactionsService {
               { upsert: true, session },
             );
           }
+        } else {
+          throw new NotFoundException('Order not found for the payment');
         }
         break;
       }
