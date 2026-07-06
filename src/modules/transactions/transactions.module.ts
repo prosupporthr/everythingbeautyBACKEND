@@ -5,6 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsWebhookController } from './transactions.webhook.controller';
 import { TransactionsService } from './transactions.service';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { EmailService } from '@/common/services/email/email.service';
 import { User, UserSchema } from '@/schemas/User.schema';
 import { Wallet, WalletSchema } from '@/schemas/Wallet.schema';
 import { Payment, PaymentSchema } from '@/schemas/Payment.schema';
@@ -26,9 +28,10 @@ import { Escrow, EscrowSchema } from '@/schemas/Escrow.schema';
       { name: Business.name, schema: BusinessSchema },
       { name: Escrow.name, schema: EscrowSchema },
     ]),
+    NotificationsModule,
   ],
   controllers: [TransactionsController, TransactionsWebhookController],
-  providers: [TransactionsService, ConfigService, JwtService],
+  providers: [TransactionsService, ConfigService, JwtService, EmailService],
   exports: [TransactionsService],
 })
 export class TransactionsModule {}
