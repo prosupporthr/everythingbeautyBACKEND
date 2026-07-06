@@ -13,6 +13,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model } from 'mongoose';
 import Stripe from 'stripe';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '@/common/services/email/email.service';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { PAYMENT_PLAN, User, UserDocument } from '@/schemas/User.schema';
 import { Wallet, WalletDocument } from '@/schemas/Wallet.schema';
@@ -63,6 +65,8 @@ export class TransactionsService {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
     @InjectModel(Escrow.name) private escrowModel: Model<EscrowDocument>,
+    private notificationsService: NotificationsService,
+    private emailService: EmailService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -842,6 +846,23 @@ export class TransactionsService {
                 { $inc: { balance: payment.amount } },
                 { upsert: true, session },
               );
+              try {
+                await this.notificationsService.createNotification({
+                  userId: business.userId?.toString(),
+                  title: 'Booking Paid',
+                  description: `Booking ${booking._id} has been paid. Amount: $${payment.amount}`,
+                });
+                const owner = await this.userModel.findById(business.userId);
+                if (owner && (owner as any).email) {
+                  await this.emailService.sendGeneralMail({
+                    email: (owner as any).email,
+                    subject: 'Booking Paid',
+                    body: `<p>Your booking <strong>${booking._id}</strong> has been paid.</p><p>Amount: $${payment.amount}</p>`,
+                  });
+                }
+              } catch (err) {
+                this.logger.error('Failed to send booking notifications', err);
+              }
             }
           }
         }
@@ -903,6 +924,23 @@ export class TransactionsService {
               { $inc: { balance: payment.amount } },
               { upsert: true, session },
             );
+            try {
+              await this.notificationsService.createNotification({
+                userId: business.userId?.toString(),
+                title: 'Order Paid',
+                description: `Order ${order._id} has been paid. Amount: $${payment.amount}`,
+              });
+              const owner = await this.userModel.findById(business.userId);
+              if (owner && (owner as any).email) {
+                await this.emailService.sendGeneralMail({
+                  email: (owner as any).email,
+                  subject: 'Order Paid',
+                  body: `<p>Your order <strong>${order._id}</strong> has been paid.</p><p>Amount: $${payment.amount}</p>`,
+                });
+              }
+            } catch (err) {
+              this.logger.error('Failed to send order notifications', err);
+            }
           }
         } else {
           throw new NotFoundException('Order not found for the payment');
