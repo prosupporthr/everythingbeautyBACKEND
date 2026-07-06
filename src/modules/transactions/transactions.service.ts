@@ -890,19 +890,33 @@ export class TransactionsService {
         const order = await this.orderModel
           .findById(payment.typeId)
           .session(session ?? null);
+
+        this.logger.debug(`[ORDER]`, order);
         if (order) {
           order.paymentStatus = ORDER_PAYMENT_STATUS.PAID;
           order.status = ORDER_STATUS.COMPLETED;
           await order.save({ session });
 
-          await this.productModel.findByIdAndUpdate(
+          const product = await this.productModel.findByIdAndUpdate(
             order.productId,
             { $inc: { quantity: -order.quantity } },
             { session },
           );
+          
+          this.logger.debug(`[PRODUCT]`, product);
+
           const business = await this.businessModel
             .findById(order.businessId)
             .session(session ?? null);
+
+          this.logger.debug(`[BUSINESS]`, business);
+
+          if (!business) {
+            order.status = ORDER_STATUS.CANCELLED;
+            await order.save({ session });
+            throw new NotFoundException('Business not found for the order');
+            
+          }
           // // create ESCROW PAYMENT
           // const escrow = await this.escrowModel.findOne({
           //   orderId: order._id,
