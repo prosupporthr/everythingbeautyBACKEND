@@ -601,15 +601,13 @@ export class TransactionsService {
 
   async getWallet(
     userId: string | ObjectId | any,
-    session?: ClientSession | null,
   ): Promise<ReturnType> {
     try {
       let wallet = await this.walletModel
         .findOne({ userId })
-        .session(session ?? null);
       if (!wallet) {
         wallet = new this.walletModel({ userId, balance: 0 });
-        await wallet.save({ session });
+        await wallet.save();
       }
 
       return new ReturnType({
@@ -675,6 +673,7 @@ export class TransactionsService {
   async initiatePayment(dto: CreateTransactionDto): Promise<ReturnType> {
     try {
       const { userId, amount, source, type, typeId, flow, currency } = dto;
+      this.logger.error(`[INITIATE PAYMENT]`, dto);
 
       const user = await this.userModel.findById(userId);
       if (!user) throw new NotFoundException('User not found');
@@ -717,29 +716,10 @@ export class TransactionsService {
 
       // 2. Handle Wallet Payment
       if (source === PAYMENT_SOURCE.WALLET) {
-        const session = await this.paymentModel.db.startSession();
-        let useTransaction = true;
         try {
-          session.startTransaction();
-        } catch (error: any) {
-          if (
-            error?.code === 20 ||
-            error?.errmsg?.includes('Transaction numbers are only allowed')
-          ) {
-            useTransaction = false;
-            this.logger.warn(
-              'MongoDB does not support transactions in this deployment. Wallet payment will proceed without a transaction.',
-            );
-          } else {
-            session.endSession();
-            throw error;
-          }
-        }
-
-        try {
+          this.logger.debug('[USER]', user);
           const hasWallet = await this.getWallet(
             user._id,
-            useTransaction ? session : null,
           );
           if (!hasWallet.success) throw new NotFoundException('Wallet not found');
 
@@ -750,12 +730,8 @@ export class TransactionsService {
           }
 
           wallet.balance -= amount;
-          if (useTransaction) {
-            await wallet.save({ session });
-          } else {
-            await wallet.save();
-          }
-
+          await wallet.save();
+          
           const payment = new this.paymentModel({
             userId,
             amount,
@@ -765,22 +741,10 @@ export class TransactionsService {
             typeId,
             status: PAYMENT_STATUS.SUCCESS,
           });
-          if (useTransaction) {
-            await payment.save({ session });
-          } else {
-            await payment.save();
-          }
-
+          await payment.save();
           await this.processSuccessfulPayment(
             payment,
-            useTransaction ? session : null,
           );
-
-          if (useTransaction) {
-            await session.commitTransaction();
-          }
-          session.endSession();
-
           return new ReturnType({
             success: true,
             message: 'Payment successful',
@@ -790,10 +754,6 @@ export class TransactionsService {
             },
           });
         } catch (error) {
-          if (useTransaction) {
-            await session.abortTransaction();
-          }
-          session.endSession();
           throw error;
         }
       }
