@@ -46,6 +46,7 @@ import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import { StartSubscriptionDto } from './dto/start-subscription.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { Escrow, ESCROW_STATUS, EscrowDocument } from '@/schemas/Escrow.schema';
+import { ObjectId } from 'mongoose';
 
 @Injectable()
 export class TransactionsService {
@@ -599,7 +600,7 @@ export class TransactionsService {
   }
 
   async getWallet(
-    userId: string,
+    userId: string | ObjectId | any,
     session?: ClientSession | null,
   ): Promise<ReturnType> {
     try {
@@ -737,7 +738,7 @@ export class TransactionsService {
 
         try {
           const hasWallet = await this.getWallet(
-            user._id.toString(),
+            user._id,
             useTransaction ? session : null,
           );
           if (!hasWallet.success) throw new NotFoundException('Wallet not found');
@@ -891,7 +892,7 @@ export class TransactionsService {
           .findById(payment.typeId)
           .session(session ?? null);
 
-        this.logger.debug(`[ORDER]`, order);
+        console.log(`[ORDER]`, order);
         if (order) {
           order.paymentStatus = ORDER_PAYMENT_STATUS.PAID;
           order.status = ORDER_STATUS.COMPLETED;
@@ -903,13 +904,13 @@ export class TransactionsService {
             { session },
           );
           
-          this.logger.debug(`[PRODUCT]`, product);
+          console.log(`[PRODUCT]`, product);
 
           const business = await this.businessModel
             .findById(order.businessId)
             .session(session ?? null);
 
-          this.logger.debug(`[BUSINESS]`, business);
+          console.log(`[BUSINESS]`, business);
 
           if (!business) {
             order.status = ORDER_STATUS.CANCELLED;
