@@ -580,6 +580,7 @@ export class PostService {
       ]);
 
       const postImages = await this.enrichImageList(obj.images);
+      const creator = await this.userService.getUserById(post?.userId);
 
       const businessPictures = business?.pictures
         ? await this.enrichImageList(business.pictures)
@@ -616,6 +617,7 @@ export class PostService {
           : null,
         likeCount,
         hasLiked,
+        creator
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich post');

@@ -735,7 +735,7 @@ export class TransactionsService {
 
           wallet.balance -= amount;
           await wallet.save();
-          
+
           const payment = new this.paymentModel({
             userId,
             amount,
@@ -767,7 +767,7 @@ export class TransactionsService {
       this.logger.error(error);
 
       throw new BadRequestException(error.message || 'Failed to initiate payment');
-   
+
     }
   }
 
@@ -834,6 +834,12 @@ export class TransactionsService {
             .findById(payment.typeId)
             .session(session ?? null);
           if (booking) {
+            const user = await this.userModel.findById(booking?.userId)
+            if (!user) {
+              booking.status = BOOKING_STATUS.REJECTED;
+              await booking.save({ session });
+              throw new NotFoundException('User not found for the booking');
+            }
             booking.paymentStatus = BOOKING_PAYMENT_STATUS.PAID;
             booking.status = BOOKING_STATUS.APPROVED;
             await booking.save({ session });
@@ -853,11 +859,74 @@ export class TransactionsService {
                   description: `Booking ${booking._id} has been paid. Amount: $${payment.amount}`,
                 });
                 const owner = await this.userModel.findById(business.userId);
+                
+                // Vendor Email
                 if (owner && (owner as any).email) {
+                  const vendorFirstName = (owner as any).firstName;
+                  const capitalizedVendorName = vendorFirstName
+                    ? vendorFirstName.charAt(0).toUpperCase() + vendorFirstName.slice(1)
+                    : 'Vendor';
+                    
+                  const buyerFirstName = (user as any)?.firstName;
+                  const capitalizedBuyerName = buyerFirstName
+                    ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                    : 'A customer';
+
                   await this.emailService.sendGeneralMail({
                     email: (owner as any).email,
-                    subject: 'Booking Paid',
-                    body: `<p>Your booking <strong>${booking._id}</strong> has been paid.</p><p>Amount: $${payment.amount}</p>`,
+                    subject: 'New Booking Payment Received - Apherra',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Hello ${capitalizedVendorName},</h2>
+                        <p>Great news! You have received a new payment for a booking on <strong>Apherra</strong>.</p>
+                        
+                        <h3>Booking Details:</h3>
+                        <ul>
+                          <li><strong>Booking ID:</strong> ${booking._id}</li>
+                          <li><strong>Date:</strong> ${booking.bookingDate || 'N/A'}</li>
+                          <li><strong>Time:</strong> ${(booking as any).bookingTime || 'N/A'}</li>
+                          <li><strong>Amount Received:</strong> $${payment.amount}</li>
+                          <li><strong>Booked By:</strong> ${capitalizedBuyerName}</li>
+                        </ul>
+
+                        <p>Please log in to your dashboard to view more details and prepare for the appointment.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Apherra Team</strong></p>
+                      </div>
+                    `,
+                  });
+                }
+                
+                // Buyer Email
+                if (user && (user as any).email) {
+                  const buyerFirstName = (user as any).firstName;
+                  const capitalizedBuyerName = buyerFirstName
+                    ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                    : 'Customer';
+
+                  await this.emailService.sendGeneralMail({
+                    email: (user as any).email,
+                    subject: 'Booking Confirmation - Apherra',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Thank you for your booking, ${capitalizedBuyerName}!</h2>
+                        <p>Your payment for booking <strong>${booking._id}</strong> has been successfully processed.</p>
+                        
+                        <h3>Booking Details:</h3>
+                        <ul>
+                          <li><strong>Business:</strong> ${(business as any)?.name || 'Apherra Business'}</li>
+                          <li><strong>Date:</strong> ${booking.bookingDate || 'N/A'}</li>
+                          <li><strong>Time:</strong> ${(booking as any).bookingTime || 'N/A'}</li>
+                          <li><strong>Amount Paid:</strong> $${payment.amount}</li>
+                        </ul>
+
+                        <p>If you have any questions or need to make changes, please contact the business directly or reach out to our support team.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Apherra Team</strong></p>
+                      </div>
+                    `,
                   });
                 }
               } catch (err) {
@@ -884,7 +953,7 @@ export class TransactionsService {
             { $inc: { quantity: -order.quantity } },
             { session },
           );
-          
+
           console.log(`[PRODUCT]`, product);
 
           const business = await this.businessModel
@@ -897,7 +966,7 @@ export class TransactionsService {
             order.status = ORDER_STATUS.CANCELLED;
             await order.save({ session });
             throw new NotFoundException('Business not found for the order');
-            
+
           }
           // // create ESCROW PAYMENT
           // const escrow = await this.escrowModel.findOne({
@@ -919,6 +988,7 @@ export class TransactionsService {
           // });
 
           if (business) {
+            const user = await this.userModel.findById(payment?.userId);
             await this.walletModel.findOneAndUpdate(
               { userId: business.userId },
               { $inc: { balance: payment.amount } },
@@ -932,11 +1002,74 @@ export class TransactionsService {
               });
               const owner = await this.userModel.findById(business.userId);
               if (owner && (owner as any).email) {
+                const vendorFirstName = (owner as any).firstName;
+                const capitalizedVendorName = vendorFirstName
+                  ? vendorFirstName.charAt(0).toUpperCase() + vendorFirstName.slice(1)
+                  : 'Vendor';
+
+                const buyerFirstName = (user as any)?.firstName;
+                const capitalizedBuyerName = buyerFirstName
+                  ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                  : 'A customer';
+
                 await this.emailService.sendGeneralMail({
                   email: (owner as any).email,
-                  subject: 'Order Paid',
-                  body: `<p>Your order <strong>${order._id}</strong> has been paid.</p><p>Amount: $${payment.amount}</p>`,
+                  subject: 'New Order Payment Received - Apherra',
+                  body: `
+                    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                      <h2>Hello ${capitalizedVendorName},</h2>
+                      <p>Great news! You have received a new payment for an order on <strong>Apherra</strong>.</p>
+                      
+                      <h3>Order Details:</h3>
+                      <ul>
+                        <li><strong>Order ID:</strong> ${order._id}</li>
+                        <li><strong>Product:</strong> ${(product as any)?.name || 'N/A'}</li>
+                        <li><strong>Quantity:</strong> ${order.quantity}</li>
+                        <li><strong>Amount Received:</strong> $${payment.amount}</li>
+                        <li><strong>Purchased By:</strong> ${capitalizedBuyerName}</li>
+                      </ul>
+
+                      <p>Please log in to your dashboard to view more details and process the order.</p>
+                      <br />
+                      <p>Best regards,</p>
+                      <p><strong>The Everything Beautiful Team</strong></p>
+                    </div>
+                  `,
                 });
+              }
+              if ((user as any).email) {
+                try {
+                  const firstName = (user as any).firstName;
+                  const capitalizedName = firstName
+                    ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+                    : 'User';
+
+                  await this.emailService.sendGeneralMail({
+                    email: (user as any).email,
+                    subject: 'Order Confirmation - Everything Beautiful',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Thank you for your order, ${capitalizedName}!</h2>
+                        <p>Your payment for order <strong>${order._id}</strong> has been successfully processed.</p>
+                        
+                        <h3>Order Details:</h3>
+                        <ul>
+                          <li><strong>Product:</strong> ${(product as any)?.name || 'N/A'}</li>
+                          <li><strong>Quantity:</strong> ${order.quantity}</li>
+                          <li><strong>Amount Paid:</strong> $${payment.amount}</li>
+                          <li><strong>Sold By:</strong> ${(business as any)?.name || 'Everything Beautiful Business'}</li>
+                        </ul>
+
+                        <p>If you have any questions or need assistance, feel free to reach out to our support team at any time.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Everything Beautiful Team</strong></p>
+                      </div>
+                    `,
+                  });
+                } catch (err) {
+                  this.logger.error('Failed to send order confirmation email', err);
+                }
               }
             } catch (err) {
               this.logger.error('Failed to send order notifications', err);
@@ -958,6 +1091,34 @@ export class TransactionsService {
           user.nextPaymentDate = nextDate;
           user.plan = PAYMENT_PLAN.PREMIUM;
           await user.save({ session });
+
+          if ((user as any).email) {
+            try {
+              const firstName = (user as any).firstName;
+              const capitalizedName = firstName
+                ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+                : 'User';
+
+              await this.emailService.sendGeneralMail({
+                email: (user as any).email,
+                subject: 'Congratulations on Your Premium Upgrade!',
+                body: `
+                  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                    <h2>Welcome to Premium, ${capitalizedName}!</h2>
+                    <p>Congratulations! You have successfully upgraded to the <strong>Premium Plan</strong>.</p>
+                    <p>Your subscription is now active, and your next payment date is <strong>${nextDate.toLocaleDateString()}</strong>.</p>
+                    <p>Get ready to enjoy all the exclusive features and benefits that come with your new premium status.</p>
+                    <p>If you have any questions or need assistance, feel free to reach out to our support team at any time.</p>
+                    <br />
+                    <p>Best regards,</p>
+                    <p><strong>The Team</strong></p>
+                  </div>
+                `,
+              });
+            } catch (err) {
+              this.logger.error('Failed to send premium upgrade email', err);
+            }
+          }
         }
         break;
       }
