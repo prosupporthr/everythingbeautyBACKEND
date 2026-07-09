@@ -17,8 +17,10 @@ import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 
 import { UploadService } from '../upload/upload.service';
 import { User, UserDocument } from '@/schemas/User.schema';
-import { ServiceDocument } from '@/schemas/Service.Schema';
-import { ProductDocument } from '@/schemas/Product.schema';
+import { Service, ServiceDocument } from '@/schemas/Service.Schema';
+import { Product, ProductDocument } from '@/schemas/Product.schema';
+import { ProductService } from '../product/product.service';
+import { ServiceService } from '../service/service.service';
 
 @Injectable()
 export class BookmarksService {
@@ -27,6 +29,8 @@ export class BookmarksService {
     private readonly bookmarkModel: Model<BookmarkDocument>,
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly uploadService: UploadService,
+    private readonly productService: ProductService,
+    private readonly service: ServiceService
   ) {}
 
   async toggleBookmark(dto: CreateBookmarkDto): Promise<ReturnType> {
@@ -175,29 +179,21 @@ export class BookmarksService {
       : null;
 
     if (obj.type === BOOKMARK_TYPE.SERVICE) {
-      const service = obj.serviceId as ServiceDocument;
-      const serviceImages =
-        service && service.pictures
-          ? await this.uploadService.getSignedUrl(service.pictures)
-          : null;
+      const service = await this.service.getServiceById(obj.serviceId);
 
       return {
         ...obj,
-        service: service ? { ...service, pictures: serviceImages } : null,
+        service: service ? { ...service } : null,
         user: enrichedUser,
       };
     }
 
     if (obj.type === BOOKMARK_TYPE.PRODUCT) {
-      const product = obj.productId as ProductDocument;
-      const productImages =
-        product && product.pictures
-          ? await this.uploadService.getSignedUrl(product.pictures)
-          : null;
+      const product = await this.productService.getProductById(obj.productId);
 
       return {
         ...obj,
-        product: product ? { ...product, pictures: productImages } : null,
+        product: product ? { ...product } : null,
         user: enrichedUser,
       };
     }
