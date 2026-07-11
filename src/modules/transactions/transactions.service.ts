@@ -11,8 +11,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { ClientSession, Model } from 'mongoose';
 import Stripe from 'stripe';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '@/common/services/email/email.service';
 import { ReturnType } from '@/common/classes/ReturnType';
 import { PAYMENT_PLAN, User, UserDocument } from '@/schemas/User.schema';
 import { Wallet, WalletDocument } from '@/schemas/Wallet.schema';
@@ -46,6 +48,7 @@ import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 import { StartSubscriptionDto } from './dto/start-subscription.dto';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { Escrow, ESCROW_STATUS, EscrowDocument } from '@/schemas/Escrow.schema';
+import { ObjectId } from 'mongoose';
 
 @Injectable()
 export class TransactionsService {
@@ -62,6 +65,8 @@ export class TransactionsService {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
     @InjectModel(Escrow.name) private escrowModel: Model<EscrowDocument>,
+    private notificationsService: NotificationsService,
+    private emailService: EmailService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
@@ -598,11 +603,15 @@ export class TransactionsService {
     }
   }
 
-  async getWallet(userId: string): Promise<ReturnType> {
+  async getWallet(
+    userId: string | ObjectId | any,
+  ): Promise<ReturnType> {
     try {
-      let wallet = await this.walletModel.findOne({ userId });
+      let wallet = await this.walletModel
+        .findOne({ userId })
       if (!wallet) {
-        wallet = await this.walletModel.create({ userId, balance: 0 });
+        wallet = new this.walletModel({ userId, balance: 0 });
+        await wallet.save();
       }
 
       return new ReturnType({
@@ -668,6 +677,7 @@ export class TransactionsService {
   async initiatePayment(dto: CreateTransactionDto): Promise<ReturnType> {
     try {
       const { userId, amount, source, type, typeId, flow, currency } = dto;
+      this.logger.error(`[INITIATE PAYMENT]`, dto);
 
       const user = await this.userModel.findById(userId);
       if (!user) throw new NotFoundException('User not found');
@@ -710,39 +720,46 @@ export class TransactionsService {
 
       // 2. Handle Wallet Payment
       if (source === PAYMENT_SOURCE.WALLET) {
-        const hasWallet = await this.getWallet(user._id.toString());
-        if (!hasWallet.success) throw new NotFoundException('Wallet not found');
+        try {
+          this.logger.debug('[USER]', user);
+          const hasWallet = await this.getWallet(
+            user._id,
+          );
+          if (!hasWallet.success) throw new NotFoundException('Wallet not found');
 
-        const wallet = hasWallet.data;
+          const wallet = hasWallet.data;
 
-        if (wallet.balance < amount) {
-          throw new BadRequestException('Insufficient wallet balance');
-        }
+          if (wallet.balance < amount) {
+            throw new BadRequestException('Insufficient wallet balance');
+          }
 
-        wallet.balance -= amount;
-        await wallet.save();
+          wallet.balance -= amount;
+          await wallet.save();
 
-        // check the payment type and credit the appropriate account or mark the order/booking as paid
-        const payment = await this.paymentModel.create({
-          userId,
-          amount,
-          source,
-          type,
-          flow,
-          typeId,
-          status: PAYMENT_STATUS.SUCCESS,
-        });
-
-        await this.processSuccessfulPayment(payment);
-
-        return new ReturnType({
-          success: true,
-          message: 'Payment successful',
-          data: {
-            paymentId: payment._id,
+          const payment = new this.paymentModel({
+            userId,
+            amount,
+            source,
+            type,
+            flow,
+            typeId,
             status: PAYMENT_STATUS.SUCCESS,
-          },
-        });
+          });
+          await payment.save();
+          await this.processSuccessfulPayment(
+            payment,
+          );
+          return new ReturnType({
+            success: true,
+            message: 'Payment successful',
+            data: {
+              paymentId: payment._id,
+              status: PAYMENT_STATUS.SUCCESS,
+            },
+          });
+        } catch (error) {
+          throw error;
+        }
       }
 
       throw new BadRequestException('Invalid payment source');
@@ -750,7 +767,7 @@ export class TransactionsService {
       this.logger.error(error);
 
       throw new BadRequestException(error.message || 'Failed to initiate payment');
-   
+
     }
   }
 
@@ -798,85 +815,310 @@ export class TransactionsService {
     }
   }
 
-  private async processSuccessfulPayment(payment: PaymentDocument) {
+  private async processSuccessfulPayment(
+    payment: PaymentDocument,
+    session?: ClientSession | null,
+  ) {
     switch (payment.type) {
       case PAYMENT_TYPE.WALLET_TOP_UP:
         await this.walletModel.findOneAndUpdate(
           { userId: payment.userId },
           { $inc: { balance: payment.amount } },
-          { upsert: true },
+          { upsert: true, session },
         );
         break;
 
       case PAYMENT_TYPE.BOOKING:
         {
-          const booking = await this.bookingModel.findById(payment.typeId);
+          const booking = await this.bookingModel
+            .findById(payment.typeId)
+            .session(session ?? null);
           if (booking) {
+            const user = await this.userModel.findById(booking?.userId)
+            if (!user) {
+              booking.status = BOOKING_STATUS.REJECTED;
+              await booking.save({ session });
+              throw new NotFoundException('User not found for the booking');
+            }
             booking.paymentStatus = BOOKING_PAYMENT_STATUS.PAID;
             booking.status = BOOKING_STATUS.APPROVED;
-            await booking.save();
-            const business = await this.businessModel.findById(
-              booking.businessId,
-            );
+            await booking.save({ session });
+            const business = await this.businessModel
+              .findById(booking.businessId)
+              .session(session ?? null);
             if (business) {
               await this.walletModel.findOneAndUpdate(
                 { userId: business.userId },
                 { $inc: { balance: payment.amount } },
-                { upsert: true },
+                { upsert: true, session },
               );
+              try {
+                await this.notificationsService.createNotification({
+                  userId: business.userId?.toString(),
+                  title: 'Booking Paid',
+                  description: `Booking ${booking._id} has been paid. Amount: $${payment.amount}`,
+                });
+                const owner = await this.userModel.findById(business.userId);
+                
+                // Vendor Email
+                if (owner && (owner as any).email) {
+                  const vendorFirstName = (owner as any).firstName;
+                  const capitalizedVendorName = vendorFirstName
+                    ? vendorFirstName.charAt(0).toUpperCase() + vendorFirstName.slice(1)
+                    : 'Vendor';
+                    
+                  const buyerFirstName = (user as any)?.firstName;
+                  const capitalizedBuyerName = buyerFirstName
+                    ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                    : 'A customer';
+
+                  await this.emailService.sendGeneralMail({
+                    email: (owner as any).email,
+                    subject: 'New Booking Payment Received - Apherra',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Hello ${capitalizedVendorName},</h2>
+                        <p>Great news! You have received a new payment for a booking on <strong>Apherra</strong>.</p>
+                        
+                        <h3>Booking Details:</h3>
+                        <ul>
+                          <li><strong>Booking ID:</strong> ${booking._id}</li>
+                          <li><strong>Date:</strong> ${booking.bookingDate || 'N/A'}</li>
+                          <li><strong>Time:</strong> ${(booking as any).bookingTime || 'N/A'}</li>
+                          <li><strong>Amount Received:</strong> $${payment.amount}</li>
+                          <li><strong>Booked By:</strong> ${capitalizedBuyerName}</li>
+                        </ul>
+
+                        <p>Please log in to your dashboard to view more details and prepare for the appointment.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Apherra Team</strong></p>
+                      </div>
+                    `,
+                  });
+                }
+                
+                // Buyer Email
+                if (user && (user as any).email) {
+                  const buyerFirstName = (user as any).firstName;
+                  const capitalizedBuyerName = buyerFirstName
+                    ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                    : 'Customer';
+
+                  await this.emailService.sendGeneralMail({
+                    email: (user as any).email,
+                    subject: 'Booking Confirmation - Apherra',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Thank you for your booking, ${capitalizedBuyerName}!</h2>
+                        <p>Your payment for booking <strong>${booking._id}</strong> has been successfully processed.</p>
+                        
+                        <h3>Booking Details:</h3>
+                        <ul>
+                          <li><strong>Business:</strong> ${(business as any)?.name || 'Apherra Business'}</li>
+                          <li><strong>Date:</strong> ${booking.bookingDate || 'N/A'}</li>
+                          <li><strong>Time:</strong> ${(booking as any).bookingTime || 'N/A'}</li>
+                          <li><strong>Amount Paid:</strong> $${payment.amount}</li>
+                        </ul>
+
+                        <p>If you have any questions or need to make changes, please contact the business directly or reach out to our support team.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Apherra Team</strong></p>
+                      </div>
+                    `,
+                  });
+                }
+              } catch (err) {
+                this.logger.error('Failed to send booking notifications', err);
+              }
             }
           }
         }
         break;
 
       case PAYMENT_TYPE.PRODUCT: {
-        const order = await this.orderModel.findById(payment.typeId);
+        const order = await this.orderModel
+          .findById(payment.typeId)
+          .session(session ?? null);
+
+        console.log(`[ORDER]`, order);
         if (order) {
           order.paymentStatus = ORDER_PAYMENT_STATUS.PAID;
           order.status = ORDER_STATUS.COMPLETED;
-          await order.save();
+          await order.save({ session });
 
-          await this.productModel.findByIdAndUpdate(order.productId, {
-            $inc: { quantity: -order.quantity },
-          });
-          const business = await this.businessModel.findById(order.businessId);
-          // create ESCROW PAYMENT
-          const escrow = await this.escrowModel.findOne({
-            orderId: order._id,
-          });
-          if (!order) return;
-
-          const businessWallet = await this.walletModel.findById(
-            business?.userId,
+          const product = await this.productModel.findByIdAndUpdate(
+            order.productId,
+            { $inc: { quantity: -order.quantity } },
+            { session },
           );
 
+          console.log(`[PRODUCT]`, product);
+
+          const business = await this.businessModel
+            .findById(order.businessId)
+            .session(session ?? null);
+
+          console.log(`[BUSINESS]`, business);
+
+          if (!business) {
+            order.status = ORDER_STATUS.CANCELLED;
+            await order.save({ session });
+            throw new NotFoundException('Business not found for the order');
+
+          }
+          // // create ESCROW PAYMENT
+          // const escrow = await this.escrowModel.findOne({
+          //   orderId: order._id,
+          // });
+          // if (!order) return;
+
+          // const businessWallet = await this.walletModel.findById(
+          //   business?.userId,
+          // );
+
           // create escrow payment for business
-          await this.escrowModel.create({
-            userId: business?.userId,
-            orderId: order._id,
-            businessWalletId: businessWallet?._id,
-            amount: payment.amount,
-            status: ESCROW_STATUS.PENDING,
-          });
-          // if (business) {
-          //   await this.walletModel.findOneAndUpdate(
-          //     { userId: business.userId },
-          //     { $inc: { balance: payment.amount } },
-          //     { upsert: true },
-          //   );
-          // }
+          // await this.escrowModel.create({
+          //   userId: business?.userId,
+          //   orderId: order._id,
+          //   businessWalletId: businessWallet?._id.toString(),
+          //   amount: payment.amount,
+          //   status: ESCROW_STATUS.PENDING,
+          // });
+
+          if (business) {
+            const user = await this.userModel.findById(payment?.userId);
+            await this.walletModel.findOneAndUpdate(
+              { userId: business.userId },
+              { $inc: { balance: payment.amount } },
+              { upsert: true, session },
+            );
+            try {
+              await this.notificationsService.createNotification({
+                userId: business.userId?.toString(),
+                title: 'Order Paid',
+                description: `Order ${order._id} has been paid. Amount: $${payment.amount}`,
+              });
+              const owner = await this.userModel.findById(business.userId);
+              if (owner && (owner as any).email) {
+                const vendorFirstName = (owner as any).firstName;
+                const capitalizedVendorName = vendorFirstName
+                  ? vendorFirstName.charAt(0).toUpperCase() + vendorFirstName.slice(1)
+                  : 'Vendor';
+
+                const buyerFirstName = (user as any)?.firstName;
+                const capitalizedBuyerName = buyerFirstName
+                  ? buyerFirstName.charAt(0).toUpperCase() + buyerFirstName.slice(1)
+                  : 'A customer';
+
+                await this.emailService.sendGeneralMail({
+                  email: (owner as any).email,
+                  subject: 'New Order Payment Received - Apherra',
+                  body: `
+                    <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                      <h2>Hello ${capitalizedVendorName},</h2>
+                      <p>Great news! You have received a new payment for an order on <strong>Apherra</strong>.</p>
+                      
+                      <h3>Order Details:</h3>
+                      <ul>
+                        <li><strong>Order ID:</strong> ${order._id}</li>
+                        <li><strong>Product:</strong> ${(product as any)?.name || 'N/A'}</li>
+                        <li><strong>Quantity:</strong> ${order.quantity}</li>
+                        <li><strong>Amount Received:</strong> $${payment.amount}</li>
+                        <li><strong>Purchased By:</strong> ${capitalizedBuyerName}</li>
+                      </ul>
+
+                      <p>Please log in to your dashboard to view more details and process the order.</p>
+                      <br />
+                      <p>Best regards,</p>
+                      <p><strong>The Everything Beautiful Team</strong></p>
+                    </div>
+                  `,
+                });
+              }
+              if ((user as any).email) {
+                try {
+                  const firstName = (user as any).firstName;
+                  const capitalizedName = firstName
+                    ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+                    : 'User';
+
+                  await this.emailService.sendGeneralMail({
+                    email: (user as any).email,
+                    subject: 'Order Confirmation - Everything Beautiful',
+                    body: `
+                      <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                        <h2>Thank you for your order, ${capitalizedName}!</h2>
+                        <p>Your payment for order <strong>${order._id}</strong> has been successfully processed.</p>
+                        
+                        <h3>Order Details:</h3>
+                        <ul>
+                          <li><strong>Product:</strong> ${(product as any)?.name || 'N/A'}</li>
+                          <li><strong>Quantity:</strong> ${order.quantity}</li>
+                          <li><strong>Amount Paid:</strong> $${payment.amount}</li>
+                          <li><strong>Sold By:</strong> ${(business as any)?.name || 'Everything Beautiful Business'}</li>
+                        </ul>
+
+                        <p>If you have any questions or need assistance, feel free to reach out to our support team at any time.</p>
+                        <br />
+                        <p>Best regards,</p>
+                        <p><strong>The Everything Beautiful Team</strong></p>
+                      </div>
+                    `,
+                  });
+                } catch (err) {
+                  this.logger.error('Failed to send order confirmation email', err);
+                }
+              }
+            } catch (err) {
+              this.logger.error('Failed to send order notifications', err);
+            }
+          }
+        } else {
+          throw new NotFoundException('Order not found for the payment');
         }
         break;
       }
 
       case PAYMENT_TYPE.MONTHLY_SUBSCRIPTION: {
-        const user = await this.userModel.findById(payment.userId);
+        const user = await this.userModel
+          .findById(payment.userId)
+          .session(session ?? null);
         if (user) {
           const nextDate = new Date();
           nextDate.setDate(nextDate.getDate() + 30);
           user.nextPaymentDate = nextDate;
           user.plan = PAYMENT_PLAN.PREMIUM;
-          await user.save();
+          await user.save({ session });
+
+          if ((user as any).email) {
+            try {
+              const firstName = (user as any).firstName;
+              const capitalizedName = firstName
+                ? firstName.charAt(0).toUpperCase() + firstName.slice(1)
+                : 'User';
+
+              await this.emailService.sendGeneralMail({
+                email: (user as any).email,
+                subject: 'Congratulations on Your Premium Upgrade!',
+                body: `
+                  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+                    <h2>Welcome to Premium, ${capitalizedName}!</h2>
+                    <p>Congratulations! You have successfully upgraded to the <strong>Premium Plan</strong>.</p>
+                    <p>Your subscription is now active, and your next payment date is <strong>${nextDate.toLocaleDateString()}</strong>.</p>
+                    <p>Get ready to enjoy all the exclusive features and benefits that come with your new premium status.</p>
+                    <p>If you have any questions or need assistance, feel free to reach out to our support team at any time.</p>
+                    <br />
+                    <p>Best regards,</p>
+                    <p><strong>The Team</strong></p>
+                  </div>
+                `,
+              });
+            } catch (err) {
+              this.logger.error('Failed to send premium upgrade email', err);
+            }
+          }
         }
         break;
       }
