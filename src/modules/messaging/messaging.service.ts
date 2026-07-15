@@ -21,6 +21,7 @@ import { User, UserDocument } from '@/schemas/User.schema';
 import { UploadService } from '@modules/upload/upload.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { ChatGateway } from '@/common/gateway/chat/chat.gateway';
+import { NotificationsService } from '@modules/notifications/notifications.service';
 
 @Injectable()
 export class MessagingService {
@@ -32,6 +33,7 @@ export class MessagingService {
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
     private readonly uploadService: UploadService,
     private chatGatewayService: ChatGateway,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private getErrorMessage(error: unknown): string {
@@ -101,9 +103,10 @@ export class MessagingService {
     senderId: string;
     type: MESSAGE_TYPE;
     message?: string;
+    replyTo?: string;
   }): Promise<ReturnType> {
     try {
-      const { chatId, senderId, type, message } = params;
+      const { chatId, senderId, type, message, replyTo } = params;
       if (!isValidObjectId(chatId) || !isValidObjectId(senderId)) {
         throw new BadRequestException('Invalid ObjectId provided');
       }
@@ -144,17 +147,49 @@ export class MessagingService {
         }
       }
 
-      const created = await this.chatMessageModel.create({
+      const createPayload: any = {
         chatId: chatObjId,
         senderId: senderObjId,
         type,
         message,
-      });
+      };
+
+      if (replyTo && isValidObjectId(replyTo)) {
+        createPayload.replyTo = new Types.ObjectId(replyTo);
+      }
+
+      const created = await this.chatMessageModel.create(createPayload);
 
       await this.chatModel.findByIdAndUpdate(chatObjId, {
         lastMessage: created._id,
         updatedAt: new Date().toISOString(),
       });
+
+      // Determine the recipient (the other participant in the chat)
+      const recipientId =
+        chat.senderId.toString() === senderId
+          ? chat.recipientId.toString()
+          : chat.senderId.toString();
+
+      // Send notification to the recipient
+      const sender = await this.userModel.findById(senderId);
+      const senderName = sender
+        ? `${sender.firstName} ${sender.lastName}`
+        : 'Someone';
+
+      await this.notificationsService.createNotification({
+        userId: recipientId,
+        title: 'New Message',
+        description: `${senderName} sent you a message${message ? ': ' + message.substring(0, 100) : ''}`,
+      });
+
+      // Emit unread count to recipient via WebSocket
+      try {
+        const totalUnread = await this.calculateTotalUnreadCount(recipientId);
+        this.chatGatewayService.emitUnreadCount(recipientId, totalUnread);
+      } catch (wsError) {
+        this.logger.error('Failed to emit unread count', wsError);
+      }
 
       const enriched = await this.enrichChatMessage(created);
       return new ReturnType({
@@ -170,6 +205,102 @@ export class MessagingService {
         throw error;
       throw new BadRequestException(this.getErrorMessage(error));
     }
+  }
+
+  // Edit a message (only the original sender can edit)
+  async editMessage(messageId: string, senderId: string, newMessage: string): Promise<ReturnType> {
+    try {
+      if (!isValidObjectId(messageId) || !isValidObjectId(senderId)) {
+        throw new BadRequestException('Invalid ObjectId provided');
+      }
+
+      const existingMessage = await this.chatMessageModel.findOne({
+        _id: new Types.ObjectId(messageId),
+        isDeleted: false,
+      });
+
+      if (!existingMessage) {
+        throw new NotFoundException('Message not found');
+      }
+
+      if (existingMessage.senderId.toString() !== senderId) {
+        throw new BadRequestException('Only the sender can edit this message');
+      }
+
+      existingMessage.message = newMessage;
+      existingMessage.isEdited = true;
+      existingMessage.editedAt = new Date();
+      await existingMessage.save();
+
+      const enriched = await this.enrichChatMessage(existingMessage);
+
+      // Emit edited message event via WebSocket
+      try {
+        this.chatGatewayService.emitMessageEdited(
+          existingMessage.chatId.toString(),
+          enriched,
+        );
+      } catch (wsError) {
+        this.logger.error('Failed to emit message-edited event', wsError);
+      }
+
+      return new ReturnType({
+        success: true,
+        message: 'Message edited successfully',
+        data: enriched,
+      });
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      )
+        throw error;
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  // Get total unread message count across all chats for a user
+  async getUserTotalUnreadCount(userId: string): Promise<ReturnType> {
+    try {
+      if (!isValidObjectId(userId)) {
+        throw new BadRequestException('Invalid userId');
+      }
+
+      const count = await this.calculateTotalUnreadCount(userId);
+
+      return new ReturnType({
+        success: true,
+        message: 'Total unread message count fetched successfully',
+        data: { count },
+      });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(this.getErrorMessage(error));
+    }
+  }
+
+  // Helper: calculate total unread messages across all chats for a user
+  private async calculateTotalUnreadCount(userId: string): Promise<number> {
+    const userObjId = new Types.ObjectId(userId);
+
+    // Find all chats where this user is a participant
+    const chats = await this.chatModel
+      .find({
+        isDeleted: false,
+        $or: [{ senderId: userObjId }, { recipientId: userObjId }],
+      })
+      .select('_id')
+      .lean();
+
+    const chatIds = chats.map((c) => c._id);
+
+    // Count unread messages in those chats that were NOT sent by this user
+    return this.chatMessageModel.countDocuments({
+      chatId: { $in: chatIds },
+      senderId: { $ne: userObjId },
+      isDeleted: false,
+      isRead: false,
+    });
   }
 
   // 3. Get chats for a user (sender or recipient) paginated
@@ -497,12 +628,33 @@ export class MessagingService {
         filesSrc.map(async (f) => await this.uploadService.getSignedUrl(f)),
       );
 
+      // Populate replied-to message if present
+      let repliedMessage: any = null;
+      if (msgObj.replyTo) {
+        const replyMsg = await this.chatMessageModel
+          .findOne({ _id: msgObj.replyTo, isDeleted: false })
+          .lean();
+        if (replyMsg) {
+          const replySender = await this.userModel.findById(replyMsg.senderId);
+          const replySenderPic = replySender?.profilePicture
+            ? await this.uploadService.getSignedUrl(replySender.profilePicture)
+            : null;
+          repliedMessage = {
+            ...replyMsg,
+            sender: replySender
+              ? { ...replySender.toObject(), profilePicture: replySenderPic }
+              : null,
+          };
+        }
+      }
+
       return {
         ...msgObj,
         sender: sender
           ? { ...sender.toObject(), profilePicture: senderPic }
           : null,
         files,
+        repliedMessage,
       };
     } catch (error: any) {
       this.logger.error(error);
