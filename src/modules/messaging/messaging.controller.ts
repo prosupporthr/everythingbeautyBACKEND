@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -19,6 +20,7 @@ import {
 import { MessagingService } from './messaging.service';
 import { CreateChatDto } from './dto/create-chat.dto';
 import { CreateChatMessageDto } from './dto/create-chat-message.dto';
+import { EditMessageDto } from './dto/edit-message.dto';
 import { ReturnType } from '@common/classes/ReturnType';
 import { PaginatedReturnType } from '@common/classes/PaginatedReturnType';
 import { PaginationQueryDto } from '@modules/business/dto/pagination-query.dto';
@@ -155,5 +157,35 @@ export class MessagingController {
   @ApiOkResponse({ description: 'Unread message count fetched' })
   async getUnreadCount(@Param('chatId') chatId: string): Promise<ReturnType> {
     return this.messagingService.getUnreadCount(chatId);
+  }
+
+  // 10. Get total unread message count across all chats for a user
+  @Get('unread-count/:userId')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({
+    summary: 'Get total unread message count across all chats for a user',
+  })
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiOkResponse({ description: 'Total unread message count fetched' })
+  async getUserTotalUnreadCount(
+    @Param('userId') userId: string,
+  ): Promise<ReturnType> {
+    return this.messagingService.getUserTotalUnreadCount(userId);
+  }
+
+  // 11. Edit a message
+  @Patch('messages/:messageId')
+  @UseGuards(UserAuthGuard)
+  @ApiOperation({
+    summary: 'Edit a message (only the original sender can edit)',
+  })
+  @ApiParam({ name: 'messageId', description: 'Message ID' })
+  @ApiBody({ type: EditMessageDto })
+  @ApiOkResponse({ description: 'Message edited' })
+  async editMessage(
+    @Param('messageId') messageId: string,
+    @Body() dto: EditMessageDto,
+  ): Promise<ReturnType> {
+    return this.messagingService.editMessage(messageId, dto.senderId, dto.message);
   }
 }

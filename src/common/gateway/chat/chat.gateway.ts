@@ -52,6 +52,7 @@ export class ChatGateway {
         senderId: payload.senderId,
         type: payload.type,
         message: payload.message,
+        replyTo: payload.replyTo,
       });
       this.logger.debug('CHAT SENT:', data);
       this.socket.emit(`chat:${payload.chatId}`, data.data);
@@ -61,14 +62,19 @@ export class ChatGateway {
     }
   }
 
-  // @SubscribeMessage('delete-message')
-  // async handleDeleteMessage(client: any, payload: DeleteMessage) {
-  //   try {
-  //     this.socket.emit(CLIENT_EVENT.DELETE_MESSAGE(payload.chatId), payload);
-  //     this.logger.debug('CHAT DELETED:', payload);
-  //   } catch (error) {
-  //     this.logger.error(error);
-  //     this.logger.error('FROM GATEWAY CLASS');
-  //   }
-  // }
+  /**
+   * Emit the total unread message count to a specific user.
+   * Frontend should listen on: `unread-count:{userId}`
+   */
+  emitUnreadCount(userId: string, count: number) {
+    this.socket.emit(`unread-count:${userId}`, { count });
+  }
+
+  /**
+   * Emit an edited message to all clients listening on the chat.
+   * Frontend should listen on: `message-edited:{chatId}`
+   */
+  emitMessageEdited(chatId: string, message: any) {
+    this.socket.emit(`message-edited:${chatId}`, message);
+  }
 }

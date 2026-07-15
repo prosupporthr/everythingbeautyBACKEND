@@ -50,6 +50,26 @@ export class ChatMessage extends MetaSchema {
     default: false,
   })
   isRead: boolean;
+
+  @Prop({
+    required: false,
+    type: SchemaTypes.ObjectId,
+    ref: 'ChatMessage',
+  })
+  replyTo: ObjectId;
+
+  @Prop({
+    required: false,
+    type: Boolean,
+    default: false,
+  })
+  isEdited: boolean;
+
+  @Prop({
+    required: false,
+    type: Date,
+  })
+  editedAt: Date;
 }
 
 export type ChatMessageDocument = HydratedDocument<ChatMessage>;

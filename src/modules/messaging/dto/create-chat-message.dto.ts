@@ -22,4 +22,9 @@ export class CreateChatMessageDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @ApiProperty({ description: 'ID of the message being replied to', required: false })
+  @IsOptional()
+  @IsMongoId()
+  replyTo?: string;
 }
