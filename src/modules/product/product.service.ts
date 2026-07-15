@@ -33,7 +33,7 @@ export class ProductService {
     private uploadService: UploadService,
     private businessService: BusinessService,
     private notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   async createProduct(dto: CreateProductDto): Promise<ReturnType> {
     const created = await this.productModel.create({ ...dto });
@@ -99,19 +99,21 @@ export class ProductService {
 
   async getBusinessProducts(
     businessId: string,
-    { page = 1, limit = 10 }: PaginationQueryDto,
+    { page = 1, limit = 10, q }: PaginationQueryDto,
     user?: UserDocument,
   ): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
+    const textFilter = q ? { $text: { $search: q } } : {};
     const [data, total] = await Promise.all([
       this.productModel
-        .find({ businessId, isDeleted: false })
+        .find({ businessId, isDeleted: false, ...textFilter })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
       this.productModel.countDocuments({
         businessId,
+        ...textFilter,
         isDeleted: false,
       }),
     ]);
