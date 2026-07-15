@@ -41,6 +41,12 @@ export class Address extends MetaSchema {
     required: false,
     type: String,
   })
+  zip: string;
+
+  @Prop({
+    required: false,
+    type: String,
+  })
   lat: string;
 
   @Prop({

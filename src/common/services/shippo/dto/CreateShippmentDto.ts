@@ -37,7 +37,14 @@ export class ShipmentAddress {
     })
     @IsString()
     @IsNotEmpty()
-    street: string;
+    street1: string;
+
+    @ApiProperty({
+        example: '10001'
+    })
+    @IsString()
+    @IsNotEmpty()
+    zip: string;
 
     @ApiProperty({
         example: 'Jack dorsey'
@@ -75,7 +82,7 @@ export class Parcel {
         example: 'ft'
     })
     @IsEnum( ['cm', 'in', 'ft', 'm','mm','yd'])
-    distance: 'cm'|'in'|'ft'|'m'|'mm'|'yd';
+    distance_unit: 'cm'|'in'|'ft'|'m'|'mm'|'yd';
 
     @ApiProperty({
         example: '4'
