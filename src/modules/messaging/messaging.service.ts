@@ -34,7 +34,7 @@ export class MessagingService {
     private readonly uploadService: UploadService,
     private chatGatewayService: ChatGateway,
     private readonly notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   private getErrorMessage(error: unknown): string {
     if (error instanceof Error && typeof error?.message === 'string') {
@@ -104,9 +104,10 @@ export class MessagingService {
     type: MESSAGE_TYPE;
     message?: string;
     replyTo?: string;
+    files?: string[];
   }): Promise<ReturnType> {
     try {
-      const { chatId, senderId, type, message, replyTo } = params;
+      const { chatId, senderId, type, message, replyTo, files } = params;
       if (!isValidObjectId(chatId) || !isValidObjectId(senderId)) {
         throw new BadRequestException('Invalid ObjectId provided');
       }
@@ -152,6 +153,7 @@ export class MessagingService {
         senderId: senderObjId,
         type,
         message,
+        files,
       };
 
       if (replyTo && isValidObjectId(replyTo)) {
