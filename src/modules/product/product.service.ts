@@ -103,7 +103,15 @@ export class ProductService {
     user?: UserDocument,
   ): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
-    const textFilter = q ? { $text: { $search: q } } : {};
+    const safeQ = q ? q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+    const textFilter = safeQ
+      ? {
+          $or: [
+            { name: { $regex: safeQ, $options: 'i' } },
+            { description: { $regex: safeQ, $options: 'i' } },
+          ],
+        }
+      : {};
     const [data, total] = await Promise.all([
       this.productModel
         .find({ businessId, isDeleted: false, ...textFilter })
@@ -157,7 +165,15 @@ export class ProductService {
     //   if (maxPrice !== undefined) filter.price.$lte = maxPrice;
     // }
 
-    const textFilter = q ? { $text: { $search: q } } : {};
+    const safeQ = q ? q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+    const textFilter = safeQ
+      ? {
+          $or: [
+            { name: { $regex: safeQ, $options: 'i' } },
+            { description: { $regex: safeQ, $options: 'i' } },
+          ],
+        }
+      : {};
     const finalFilter = { ...filter, ...textFilter };
 
     const [data, total] = await Promise.all([

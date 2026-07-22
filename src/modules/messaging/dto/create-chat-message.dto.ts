@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { MESSAGE_TYPE } from '@/schemas/ChatMessage.schema';
 
 export class CreateChatMessageDto {
@@ -22,6 +22,11 @@ export class CreateChatMessageDto {
   @IsOptional()
   @IsString()
   message?: string;
+
+  @ApiProperty({ description: 'Message files', required: false, example: ['https://google.com'] })
+  @IsOptional()
+  @IsArray()
+  files?: string[];
 
   @ApiProperty({ description: 'ID of the message being replied to', required: false })
   @IsOptional()
