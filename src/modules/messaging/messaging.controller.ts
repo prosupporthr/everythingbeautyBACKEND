@@ -30,7 +30,7 @@ import { UserAuthGuard } from '@/common/guards/user-auth/user-auth.guard';
 @ApiTags('Messaging')
 @Controller('messaging')
 export class MessagingController {
-  constructor(private readonly messagingService: MessagingService) {}
+  constructor(private readonly messagingService: MessagingService) { }
 
   // 1. Create chat
   @Post('chats')
@@ -55,7 +55,7 @@ export class MessagingController {
   async createChatMessage(
     @Body() dto: CreateChatMessageDto,
   ): Promise<ReturnType> {
-    return this.messagingService.createChatMessage(dto);
+    return this.messagingService.createChatMessage(dto as any);
   }
 
   // 3. Get chats for a user (paginated)
