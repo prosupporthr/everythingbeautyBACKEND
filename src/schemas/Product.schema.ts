@@ -2,8 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { Service } from './Service.Schema';
 
+@Schema({ _id: false })
 export class ColorType {
+  @Prop({ type: String })
   value: string;
+
+  @Prop({ type: String })
   label: string;
 }
 

@@ -20,4 +20,12 @@ export class PaginationQueryDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Query string',
+    example: 'search',
+    required: false,
+  })
+  q?: string;
 }

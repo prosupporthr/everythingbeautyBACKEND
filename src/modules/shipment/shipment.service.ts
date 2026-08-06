@@ -14,13 +14,13 @@ import { CreateShipmentPayloadDto } from './dto/CreateShipmentPayloadDto';
 
 @Injectable()
 export class ShipmentService {
-    constructor(private shippoService: ShippoService, 
-            @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
-            @InjectModel(Shipment.name) private readonly shipmentModel: Model<ShipmentDocument>,
-            @InjectModel(Address.name) private readonly addressModel: Model<AddressDocument>,
-            @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
-            @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
-    ) {}
+    constructor(private shippoService: ShippoService,
+        @InjectModel(Order.name) private readonly orderModel: Model<OrderDocument>,
+        @InjectModel(Shipment.name) private readonly shipmentModel: Model<ShipmentDocument>,
+        @InjectModel(Address.name) private readonly addressModel: Model<AddressDocument>,
+        @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+        @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    ) { }
 
     async createShipment(orderId: string, payload: CreateShipmentPayloadDto) {
         try {
@@ -51,12 +51,13 @@ export class ShipmentService {
             const shipmentPayload: CreateShipmentDto = {
                 address_from: payload.address_from,
                 address_to: {
-                    city: address.city,
-                    state: address.state,
-                    country: address.country,
-                    street: address.address,
-                    email: user.email,
-                    phone: user.phoneNumber,
+                    city: address.city ?? '',
+                    state: address.state ?? '',
+                    country: address.country ?? '',
+                    street1: address.address ?? '',
+                    zip: address.zip ?? '',
+                    email: user.email ?? '',
+                    phone: user.phoneNumber ?? '',
                     name: user.firstName + ' ' + user.lastName,
                 },
                 parcels: payload.parcels,
@@ -64,7 +65,7 @@ export class ShipmentService {
 
             // Create shipment via Shippo service
             const shippoShipment = await this.shippoService.createShippment({ payload: shipmentPayload });
-            
+
             if (!shippoShipment || !shippoShipment.object_id) {
                 throw new BadRequestException('Failed to create shipment via Shippo');
             }
@@ -74,8 +75,8 @@ export class ShipmentService {
                 orderId: order._id,
                 shippoObjectId: shippoShipment.object_id,
                 status: shippoShipment.status,
-                address: shipmentPayload.address_to.street,
-                city: shipmentPayload.address_to.city,                
+                address: shipmentPayload.address_to.street1,
+                city: shipmentPayload.address_to.city,
                 state: shipmentPayload.address_to.state,
                 country: shipmentPayload.address_to.country,
             });
@@ -108,5 +109,5 @@ export class ShipmentService {
         }
     }
 
-    
+
 }

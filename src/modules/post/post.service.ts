@@ -32,7 +32,7 @@ export class PostService {
     private readonly productModel: Model<ProductDocument>,
     private readonly uploadService: UploadService,
     private userService: UserService,
-  ) {}
+  ) { }
 
   async createPost(userId: string, dto: CreatePostDto): Promise<ReturnType> {
     if (!Types.ObjectId.isValid(userId)) {
@@ -581,6 +581,10 @@ export class PostService {
 
       const postImages = await this.enrichImageList(obj.images);
       const creator = await this.userService.getUserById(post?.userId);
+      const commentsCount = await this.commentModel.countDocuments({
+        postId: obj._id,
+        isDeleted: false,
+      });
 
       const businessPictures = business?.pictures
         ? await this.enrichImageList(business.pictures)
@@ -595,7 +599,7 @@ export class PostService {
       const hasLiked =
         typeof currentUserId === 'string' && currentUserId.length > 0
           ? Array.isArray(obj.likes) &&
-            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          obj.likes.some((l: any) => l?.toString?.() === currentUserId)
           : false;
       const rest = { ...obj } as Record<string, any>;
       delete rest.likes;
@@ -605,19 +609,20 @@ export class PostService {
         images: postImages,
         business: business
           ? {
-              ...business,
-              pictures: businessPictures,
-            }
+            ...business,
+            pictures: businessPictures,
+          }
           : null,
         product: product
           ? {
-              ...product,
-              pictures: productPictures,
-            }
+            ...product,
+            pictures: productPictures,
+          }
           : null,
         likeCount,
         hasLiked,
-        creator
+        creator,
+        commentsCount
       };
     } catch (error) {
       throw new BadRequestException('Failed to enrich post');
@@ -642,20 +647,20 @@ export class PostService {
         ? await this.enrichImageList(business.pictures)
         : [];
 
-        const user = await this.userService.getUserById(comment?.userId?.toString());
+      const user = await this.userService.getUserById(comment?.userId?.toString());
 
-        // get replies count
-        const replies = await this.commentModel.countDocuments({
-          commentId: obj._id,
-          isDeleted: false,
-          isReply: true,
-        });
+      // get replies count
+      const replies = await this.commentModel.countDocuments({
+        commentId: obj._id,
+        isDeleted: false,
+        isReply: true,
+      });
 
-         const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
+      const likeCount = Array.isArray(obj.likes) ? obj.likes.length : 0;
       const hasLiked =
         typeof currentUserId === 'string' && currentUserId.length > 0
           ? Array.isArray(obj.likes) &&
-            obj.likes.some((l: any) => l?.toString?.() === currentUserId)
+          obj.likes.some((l: any) => l?.toString?.() === currentUserId)
           : false;
       const rest = { ...obj } as Record<string, any>;
       delete rest.likes;
@@ -665,9 +670,9 @@ export class PostService {
         images: commentImages,
         business: business
           ? {
-              ...business,
-              pictures: businessPictures,
-            }
+            ...business,
+            pictures: businessPictures,
+          }
           : null,
         user: user?.data,
         replies: replies || 0,

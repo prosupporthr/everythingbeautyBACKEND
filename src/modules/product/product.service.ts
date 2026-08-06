@@ -33,7 +33,7 @@ export class ProductService {
     private uploadService: UploadService,
     private businessService: BusinessService,
     private notificationsService: NotificationsService,
-  ) {}
+  ) { }
 
   async createProduct(dto: CreateProductDto): Promise<ReturnType> {
     const created = await this.productModel.create({ ...dto });
@@ -99,19 +99,29 @@ export class ProductService {
 
   async getBusinessProducts(
     businessId: string,
-    { page = 1, limit = 10 }: PaginationQueryDto,
+    { page = 1, limit = 10, q }: PaginationQueryDto,
     user?: UserDocument,
   ): Promise<PaginatedReturnType<ProductDocument[]>> {
     const skip = (page - 1) * limit;
+    const safeQ = q ? q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+    const textFilter = safeQ
+      ? {
+          $or: [
+            { name: { $regex: safeQ, $options: 'i' } },
+            { description: { $regex: safeQ, $options: 'i' } },
+          ],
+        }
+      : {};
     const [data, total] = await Promise.all([
       this.productModel
-        .find({ businessId, isDeleted: false })
+        .find({ businessId, isDeleted: false, ...textFilter })
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec(),
       this.productModel.countDocuments({
         businessId,
+        ...textFilter,
         isDeleted: false,
       }),
     ]);
@@ -155,7 +165,15 @@ export class ProductService {
     //   if (maxPrice !== undefined) filter.price.$lte = maxPrice;
     // }
 
-    const textFilter = q ? { $text: { $search: q } } : {};
+    const safeQ = q ? q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+    const textFilter = safeQ
+      ? {
+          $or: [
+            { name: { $regex: safeQ, $options: 'i' } },
+            { description: { $regex: safeQ, $options: 'i' } },
+          ],
+        }
+      : {};
     const finalFilter = { ...filter, ...textFilter };
 
     const [data, total] = await Promise.all([
